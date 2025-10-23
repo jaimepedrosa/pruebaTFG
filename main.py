@@ -63,7 +63,6 @@ print("\nConfigurando el SFTTrainer con SFTConfig...")
 
 trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
     train_dataset=dataset,
     peft_config=lora_config,
     args=SFTConfig(
