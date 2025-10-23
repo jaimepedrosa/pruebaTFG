@@ -1,0 +1,30 @@
+(base) jovyan@fb0226c5e2e1:~/work/pruebaTFG$ python main.py
+
+Cargando dataset local...
+Dataset cargado exitosamente: Dataset({
+    features: ['text'],
+    num_rows: 10
+})
+
+Cargando el modelo base y el tokenizer: SUFE-AIFLM-Lab/Fin-R1
+Loading checkpoint shards: 100%|██████████████████████████| 4/4 [00:04<00:00,  1.10s/it]
+Modelo y tokenizer cargados exitosamente en 4-bits.
+
+Configurando el SFTTrainer con SFTConfig...
+Adding EOS to train dataset: 100%|█████████████| 10/10 [00:00<00:00, 1805.55 examples/s]
+Tokenizing train dataset: 100%|█████████████████| 10/10 [00:00<00:00, 442.78 examples/s]
+Truncating train dataset: 100%|████████████████| 10/10 [00:00<00:00, 4185.51 examples/s]
+Trainer inicializado correctamente.
+
+Iniciando el entrenamiento de QLoRA...
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
+  0%|                                                             | 0/3 [00:00<?, ?it/s]/opt/conda/lib/python3.13/site-packages/torch/_dynamo/eval_frame.py:929: UserWarning: torch.utils.checkpoint: the use_reentrant parameter should be passed explicitly. In version 2.5 we will raise an exception if use_reentrant is not passed. use_reentrant=False is recommended, but if you need to preserve the current default behavior, you can pass use_reentrant=True. Refer to docs for more details on the differences between the two variants.
+  return fn(*args, **kwargs)
+{'loss': 1.6878, 'grad_norm': 0.35509005188941956, 'learning_rate': 0.0002, 'entropy': 0.9445968568325043, 'num_tokens': 383.0, 'mean_token_accuracy': 0.6115129441022873, 'epoch': 0.4}
+{'loss': 2.1426, 'grad_norm': 0.45761755108833313, 'learning_rate': 0.00013333333333333334, 'entropy': 1.2322024255990982, 'num_tokens': 639.0, 'mean_token_accuracy': 0.5934163182973862, 'epoch': 0.8}
+{'loss': 1.7541, 'grad_norm': 0.6443368792533875, 'learning_rate': 6.666666666666667e-05, 'entropy': 0.9796292781829834, 'num_tokens': 790.0, 'mean_token_accuracy': 0.6395243108272552, 'epoch': 1.0}
+{'train_runtime': 4.0807, 'train_samples_per_second': 2.451, 'train_steps_per_second': 0.735, 'train_loss': 1.8615341583887737, 'epoch': 1.0}
+100%|█████████████████████████████████████████████████████| 3/3 [00:04<00:00,  1.36s/it]
+Entrenamiento completado.
+
+✅ Adaptador LoRA guardado exitosamente en: ./finr1-qlora-adapter
