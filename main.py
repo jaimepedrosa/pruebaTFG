@@ -76,7 +76,7 @@ trainer = SFTTrainer(
         optim="paged_adamw_8bit",
         fp16=True,
         dataset_text_field="text",
-        max_seq_length=512,
+        seq_length=512,
         packing=False,
     ),
 )
