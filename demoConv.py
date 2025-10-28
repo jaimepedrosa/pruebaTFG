@@ -2,13 +2,27 @@ import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    BitsAndBytesConfig
+    BitsAndBytesConfig,
+    StoppingCriteria,        # <--- CAMBIO: Importación necesaria
+    StoppingCriteriaList     # <--- CAMBIO: Importación necesaria
 )
 from peft import PeftModel
 import sys
 
-# --- PASO 1: DEFINIR MODELOS Y CONFIGURACIÓN ---
+# --- CAMBIO: Definir una clase de parada personalizada ---
+# Esta clase comprobará cada token nuevo que se genere.
+class StopOnTokens(StoppingCriteria):
+    def __init__(self, stop_token_ids):
+        self.stop_token_ids = stop_token_ids
+    
+    def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+        # Comprueba si el ÚLTIMO token generado es uno de los tokens de parada
+        if input_ids[0][-1] in self.stop_token_ids:
+            return True
+        return False
+# ----------------------------------------------------
 
+# --- PASO 1: DEFINIR MODELOS Y CONFIGURACIÓN ---
 model_name = "SUFE-AIFLM-Lab/Fin-R1"
 adapter_path = "./finr1-qlora-adapter"
 
@@ -29,16 +43,25 @@ model = AutoModelForCausalLM.from_pretrained(
     quantization_config=bnb_config,
     device_map="auto",
     trust_remote_code=True,
-    local_files_only=True  # <--- ARREGLO 1: Evita descargar el modelo cada vez
+    local_files_only=True
 )
 
 print(f"Cargando el tokenizer (desde caché local)...")
 tokenizer = AutoTokenizer.from_pretrained(
     model_name, 
     trust_remote_code=True,
-    local_files_only=True  # <--- ARREGLO 1: Evita descargar el tokenizer cada vez
+    local_files_only=True
 )
 tokenizer.pad_token = tokenizer.eos_token
+
+# --- CAMBIO: Crear la lista de criterios de parada ---
+# Le diremos que se detenga si ve el token de inicio (bos) o el token [INST]
+stop_token_ids = [
+    tokenizer.bos_token_id, # ID del token <s>
+    tokenizer.encode("[INST]", add_special_tokens=False)[-1] # ID del token [INST]
+]
+stopping_criteria_list = StoppingCriteriaList([StopOnTokens(stop_token_ids)])
+# --------------------------------------------------
 
 # --- PASO 4: FUSIONAR EL ADAPTADOR LoRA CON EL MODELO ---
 print(f"Cargando y fusionando el adaptador desde: {adapter_path}")
@@ -56,24 +79,29 @@ try:
             break
             
         formatted_prompt = f"<s>[INST] {prompt} [/INST] "
-
-        # --- ARREGLO 2: Mueve los inputs a la GPU (model.device) ---
         inputs = tokenizer(formatted_prompt, return_tensors="pt").to(model.device)
 
         print("FinR1: (Generando respuesta...)")
         with torch.no_grad():
             outputs = model.generate(
-                **inputs,                  # <--- ARREGLO 2: Pasa los inputs de la GPU
-                max_new_tokens=512,        # Aumentado por si la respuesta es larga
+                **inputs,
+                max_new_tokens=512,
                 pad_token_id=tokenizer.eos_token_id,
-                eos_token_id=tokenizer.eos_token_id, # <--- ARREGLO 3: Sabe cuándo parar
-                do_sample=True,          
-                temperature=0.7,         
-                top_p=0.9                
+                eos_token_id=tokenizer.eos_token_id, 
+                # --- CAMBIOS EN LA GENERACIÓN ---
+                do_sample=True,          # Volvemos a True para evitar bucles
+                temperature=0.6,         # Un poco menos "loco"
+                top_p=0.9,               
+                stopping_criteria=stopping_criteria_list # Aplicamos la regla de parada
+                # ----------------------------------
             )
         
         full_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         model_answer = full_response.split("[/INST]")[-1].strip()
+        
+        # --- CAMBIO: Limpiar la salida de tokens basura ---
+        model_answer = model_answer.replace("[OUT]", "").replace("[/S]", "").replace("```python", "")
+        # -------------------------------------------------
         
         print(f"FinR1: {model_answer}\n")
 
