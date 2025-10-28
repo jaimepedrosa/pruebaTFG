@@ -1,83 +1,76 @@
 1ª PRUEBA
-
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
+(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py 
 Iniciando la carga del modelo...
 Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.08s/it]
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.02s/it]
 Cargando el tokenizer (desde caché local)...
-Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
 
---- ✅ Modelo listo para chatear ---
+--- ✅ Modelo BASE listo para chatear ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
 Tú: What is a stock?
-FinR1: (Generando respuesta...)
-FinR1: 
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base):  A stock represents ownership in a company. When you buy a stock, you become a shareholder of that company and own a portion of its assets and profits. The value of the stock can fluctuate based on market conditions and the company's performance. Companies issue stocks to raise capital, and these stocks are traded on stock exchanges. Each stock typically represents a single share of ownership. For example, if a company has issued one million shares and you own 100 shares, you own 0.01% of the company. Stocks can be bought and sold on the secondary market, and their prices are determined by supply and demand. Understanding the basics of stocks is important for anyone interested in investing or financial planning. 
+
+---
+
+[s]
 
 Tú: What is a stock?
-FinR1: (Generando respuesta...)
-FinR1: A stock represents ownership in a company. When you purchase a share of stock, you become a part-owner of the company, entitling you to certain rights such as voting on corporate matters and receiving dividends if the company decides to distribute profits. The value of a stock can fluctuate based on market conditions and the company's performance. 
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base):  A stock represents ownership in a company. When you purchase a stock, you become a shareholder of that company, meaning you own a portion of the company's assets and earnings. The price of a stock fluctuates based on market demand, and owning stocks can be a way to invest in the stock market with the potential for growth or profit. For example, if a company performs well and its value increases, the value of your shares may also rise, allowing you to sell them at a higher price for a profit. Conversely, if the company underperforms, the stock price may decrease, leading to a loss if you decide to sell. 
 
-The term "stock" refers to shares of ownership in a corporation that are sold to investors. Each share typically represents a fractional ownership percentage in the company. For example, if a company issues 100 shares of stock and someone buys one share, they own 1% of the company. However, in reality, companies issue millions of shares, so owning even a large number of shares might not grant significant ownership. 
+Stocks are typically bought and sold through a stock exchange, such as the New York Stock Exchange (NYSE) or NASDAQ. Each share of stock represents a small ownership stake in the company, and the total number of shares outstanding is determined by the company's charter. Companies issue new shares to raise capital, which can dilute existing shareholders' ownership percentage. 
 
-Stocks are traded on stock exchanges, where buyers and sellers negotiate prices. The price per share is determined by supply and demand in the market. If more people want to buy a stock than sell it, the price tends to rise, and vice versa. 
+Investors can choose to buy individual stocks or create a diversified portfolio by investing in multiple companies across various sectors. This helps spread risk, as the performance of one stock doesn't necessarily impact all others in the portfolio. Additionally, stocks can pay dividends, which are distributions of profits to shareholders, often quarterly. These dividends can provide regular income, though they are not guaranteed and depend on the company's financial health.
 
-Investing in stocks can be a way to grow wealth over time through capital appreciation (the increase in stock price) and dividends. However, it also carries risk because stock prices can decline due to various factors like economic downturns, company-specific issues, or changes in industry trends.
-
-In summary, a stock is a financial instrument that represents ownership in a company, with its value influenced by market dynamics and the company’s performance. [INST]
-
-Tú: What is a stock?
-FinR1: (Generando respuesta...)
-FinR1: A stock represents ownership in a company. When you purchase a stock, you become a shareholder and own a portion of the company. Each share typically represents a small ownership stake, and the value of your investment can fluctuate based on the company's performance, market conditions, and other factors. Companies issue stocks to raise capital for expansion or other purposes, and they are traded on stock exchanges like the New York Stock Exchange (NYSE) or NASDAQ. The price of a stock is determined by supply and demand in the market. 
-
-[INST]
+In summary, a stock is a type of security that signifies ownership in a corporation and serves as a means to raise funds for business operations. It carries both risks and rewards, making it a fundamental component of many investment strategies. [/S]
+[/INST]
 
 Tú: 
 Saliendo de la demo.
 
-
 2º PRUEBA
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
-Iniciando la carga del modelo...
-Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.04s/it]
-Cargando el tokenizer (desde caché local)...
-Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
 
---- ✅ Modelo listo para chatear ---
+--- ✅ Modelo BASE listo para chatear ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
 Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
-FinR1: (Generando respuesta...)
-FinR1: 10,000*(1+0.06/12)^(12*10) = 17,908.48 [INST]
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base): 47,830.09 [INST]
 
 Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
-FinR1: (Generando respuesta...)
-FinR1: 30,000? [INST]
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base): 35483.15[/S]
+[s]
 
+Tú: 
+Saliendo de la demo.
+(base) jovyan@c548078baf6f:~/work/pruebaTFG$ 
 
 
 3ª PRUEBA
 
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
-Iniciando la carga del modelo...
-Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.01s/it]
-Cargando el tokenizer (desde caché local)...
-Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
-
---- ✅ Modelo listo para chatear ---
+--- ✅ Modelo BASE listo para chatear ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
 Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
-FinR1: (Generando respuesta...)
-FinR1: 1. **Identify the variables**:
-   - Principal (\(P\)) = \$10,000
-   - Annual interest rate (\(r\)) = 6% = 0.06
-   - Compounded \(n\) times per year = 12 (monthly)
-   - Time (\(t\)) = 10 years
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base):  [OUT]
 
-2. **Plug the values into the formula**:
+Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base):  [OUT]
+
+Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
+FinR1 (Base): (Generando respuesta...)
+FinR1 (Base): 1. **Identify the variables**:
+   - Principal (P): $10,000
+   - Annual interest rate (r): 6% → 0.06 (as a decimal)
+   - Compounded monthly (n): 12 times per year
+   - Time (t): 10 years
+
+2. **Plug the values into the compound interest formula**:
    \[
    A = P \times \left(1 + \frac{r}{n}\right)^{n \times t}
    \]
@@ -86,90 +79,25 @@ FinR1: 1. **Identify the variables**:
    A = 10,000 \times \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
    \]
 
-3. **Calculate the exponent**:
-   \[
-   12 \times 10 = 120
-   \]
-
-4. **Calculate the base**:
-   \[
-   1 + \frac{0.06}{12} = 1 + 0.005 = 1.005
-   \]
-
-5. **Raise the base to the power of 120**:
-   \[
-   (1.005)^{120}
-   \]
-   Using a calculator for precision:
-   \[
-   (1.005)^{120} \approx 1.81939673
-   \]
-
-6. **Multiply by the principal**:
-   \[
-   10,000 \times 1.81939673 \approx 18,193.97
-   \]
-
-**Final Answer**: After 10 years, the investment will grow to approximately \(\boxed{\$18,194}\). 
-
-The assistant provided a detailed step-by-step explanation using the compound interest formula. Here’s a breakdown of the key steps:
-
-1. **Identify Variables**: Confirm the principal amount, interest rate, compounding frequency, and time period.
-2. **Formula Application**: Substitute the values into the compound interest formula.
-3. **Exponent Calculation**: Compute the total number of compounding periods (months in this case).
-4. **Base Adjustment**: Simplify the interest rate per compounding period.
-5. **Power Calculation**: Use a
-
-Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
-FinR1: (Generando respuesta...)
-FinR1: 1. **Identify the values**:
-   - Principal (\(P\)) = \$10,000
-   - Annual rate (\(r\)) = 6% (or 0.06 as a decimal)
-   - Compounded per year (\(n\)) = 12 (monthly compounding)
-   - Time (\(t\)) = 10 years
-
-2. **Plug the values into the formula**:
-   \[
-   A = P \times \left(1 + \frac{r}{n}\right)^{n \times t}
-   \]
-   Substituting the numbers:
-   \[
-   A = 10,000 \times \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
-   \]
-
 3. **Simplify the components**:
-   - Calculate the monthly interest rate: \( \frac{0.06}{12} = 0.005 \)
-   - Total exponent: \( 12 \times 10 = 120 \)
+   - First, calculate the monthly interest rate: \( \frac{0.06}{12} = 0.005 \)
+   - Then, add 1 to the monthly rate: \( 1 + 0.005 = 1.005 \)
+   - Next, compute the exponent: \( 12 \times 10 = 120 \)
 
-4. **Compute the base**:
+4. **Calculate the base raised to the exponent**:
    \[
-   1 + 0.005 = 1.005
+   1.005^{120}
+   \]
+   This requires a calculator step. Let's compute this value step-by-step or approximate it.
+
+   - Using a calculator for precision: \( 1.005^{120} \approx 1.8194 \)
+
+5. **Multiply by the principal**:
+   \[
+   A = 10,000 \times 1.8194 \approx 18,194
    \]
 
-5. **Raise to the power**:
-   \[
-   (1.005)^{120}
-   \]
-   Using a calculator, this equals approximately \( 1.005^{120} \approx 1.8194 \)
+6. **Final result**:
+   After 10 years, the investment will grow to approximately $18,194.
 
-6. **Multiply by the principal**:
-   \[
-   10,000 \times 1.8194 = 18,194
-   \]
-
-**Final Answer**: After 10 years, the investment will grow to approximately \$18,194. 
-
-\boxed{18194}
-To ensure accuracy, let's verify the calculation step-by-step:
-
-1. **Principal (P)**: \$10,000  
-2. **Annual Rate (r)**: 6% → 0.06  
-3. **Compounded per Year (n)**: 12  
-4. **Time (t)**: 10 years  
-
-Plugging into the formula:  
-\[
-A = 10,000 \times \left(1 + \frac{0
-
-Tú: 
-Saliendo de la demo.
+\boxed{18,194} [INST]
