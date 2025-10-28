@@ -1,9 +1,9 @@
 1ª PRUEBA
 
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py 
+(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
 Iniciando la carga del modelo...
 Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.03s/it]
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.08s/it]
 Cargando el tokenizer (desde caché local)...
 Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
 
@@ -12,279 +12,164 @@ Escribe tu prompt. Escribe "salir" para terminar.
 
 Tú: What is a stock?
 FinR1: (Generando respuesta...)
-FinR1: A company may decide to issue more stock under various circumstances, often related to financing needs, strategic expansion, or other corporate objectives. Here are some key reasons and considerations involved in determining when to issue additional shares:
-
-1. **Capital Raising**: One of the primary reasons for issuing new stock is to raise capital. Companies might need funds for debt repayment, paying off existing liabilities, expanding operations, launching new products, or entering new markets. Issuing stock directly converts potential investor capital into cash for the company.
-
-2. **Corporate Growth**: Issuing stock can support corporate growth strategies, such as acquisitions, mergers, or organic expansion. By increasing their capital base, companies can finance larger-scale projects or enter new business areas without relying solely on debt.
-
-3. **Debt Reduction**: Issuing stock can be a way for companies to reduce their debt-to-equity ratio. If a company has too much debt, issuing stock to pay down loans can improve its financial leverage profile and potentially lower interest expenses
+FinR1: 
 
 Tú: What is a stock?
 FinR1: (Generando respuesta...)
-FinR1: The primary differences between stocks and bonds lie in their nature as investment instruments, the rights they confer on the investor, and the associated risks and returns. Here’s a breakdown:
+FinR1: A stock represents ownership in a company. When you purchase a share of stock, you become a part-owner of the company, entitling you to certain rights such as voting on corporate matters and receiving dividends if the company decides to distribute profits. The value of a stock can fluctuate based on market conditions and the company's performance. 
 
-1. **Ownership vs. Lending**:
-   - **Stocks**: Represent ownership (equity) in a company. Purchasing shares
+The term "stock" refers to shares of ownership in a corporation that are sold to investors. Each share typically represents a fractional ownership percentage in the company. For example, if a company issues 100 shares of stock and someone buys one share, they own 1% of the company. However, in reality, companies issue millions of shares, so owning even a large number of shares might not grant significant ownership. 
+
+Stocks are traded on stock exchanges, where buyers and sellers negotiate prices. The price per share is determined by supply and demand in the market. If more people want to buy a stock than sell it, the price tends to rise, and vice versa. 
+
+Investing in stocks can be a way to grow wealth over time through capital appreciation (the increase in stock price) and dividends. However, it also carries risk because stock prices can decline due to various factors like economic downturns, company-specific issues, or changes in industry trends.
+
+In summary, a stock is a financial instrument that represents ownership in a company, with its value influenced by market dynamics and the company’s performance. [INST]
+
+Tú: What is a stock?
+FinR1: (Generando respuesta...)
+FinR1: A stock represents ownership in a company. When you purchase a stock, you become a shareholder and own a portion of the company. Each share typically represents a small ownership stake, and the value of your investment can fluctuate based on the company's performance, market conditions, and other factors. Companies issue stocks to raise capital for expansion or other purposes, and they are traded on stock exchanges like the New York Stock Exchange (NYSE) or NASDAQ. The price of a stock is determined by supply and demand in the market. 
+
+[INST]
 
 Tú: 
 Saliendo de la demo.
-
-
-
-
-
 
 
 2º PRUEBA
-
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py 
+(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
 Iniciando la carga del modelo...
 Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.02s/it]
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.04s/it]
 Cargando el tokenizer (desde caché local)...
 Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
 
 --- ✅ Modelo listo para chatear ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
-Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per
- year). How much money will I have after 10 years?
+Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
 FinR1: (Generando respuesta...)
-FinR1: [OUT] To determine how much money you will have after 10 years with an initial investment of $10,000 at a 6% annual interest rate compounded monthly, we can use the compound interest formula:
+FinR1: 10,000*(1+0.06/12)^(12*10) = 17,908.48 [INST]
 
-\[
-A = P \left(1 + \frac{r}{n}\right)^{nt}
-\]
-
-Where:
-- \( A \) is the amount of money accumulated after n years, including interest.
-- \( P \) is the principal amount ($10,000).
-- \( r \) is the annual interest rate (6%, or 0.06).
-- \( n \) is the number of times that interest is compounded per year (12 times for monthly compounding).
-- \( t \) is the time the money is invested for in years (10 years).
-
-Plugging in the values:
-
-\[
-A = 10,000 \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
-\]
-
-First, calculate the monthly interest rate:
-
-\[
-\frac{0.06}{12} = 0.005
-\]
-
-Next, compute the exponent:
-
-\[
-12 \times 10 = 120
-\]
-
-Now, compute the base raised to the power of 120:
-
-\[
-\left(1 + 0.005\right)^{120} = (1.005)^{120}
-\]
-
-To find this value, we can use the rule of 72 to approximate or perform exact calculation. However, since precise computation is needed, we can use a calculator step-by-step.
-
-Alternatively, using the approximation method:
-
-\[
-(1.005)^{120} \approx 2.0084
-\]
-
-Then multiply by the principal amount:
-
-\[
-10,000 \times 2.0084 = 20,084
-\]
-
-Thus, after 10 years, the total amount would be approximately $20,084. For higher precision, using exact calculations:
-
-\[
-(1.005)^{120} \approx 2.00859 \quad \text{(using a calculator)}
-\]
-
-So:
-
-\[
-10,000 \times 2.00
-
-Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per
- year). How much money will I have after 10 years?
+Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
 FinR1: (Generando respuesta...)
-FinR1: 10,000 * (1 + 0.06/12) ** (12*10) = 17,908.48
+FinR1: 30,000? [INST]
 
-[s]Alright, let's break this down step by step. So, you've got $10,000 to invest, and the bank is offering a 6% annual interest rate, compounded monthly. That means the interest is applied 12 times a year instead of just once at the end of the term. 
-
-First, we need to find out how much each compounding period contributes. Since the interest rate is 6% per year, divided by 12 months, each month's interest rate is 0.5% (0.06 divided by 12 equals 0.005). 
-
-Next, we calculate the number of compounding periods over 10 years. Since there are 12 months in a year, multiplying 12 by 10 gives us 120 periods.
-
-The formula for compound interest is A = P(1 + r/n)^(nt), where:
-- A is the amount of money accumulated after n years, including interest.
-- P is the principal amount ($10,000).
-- r is the annual interest rate (0.06).
-- n is the number of times that interest is compounded per year (12).
-- t is the time the money is invested for in years (10).
-
-Plugging in the numbers: 10,000 * (1 + 0.06/12)^(12*10). Simplifying inside the parentheses first: 1 + 0.06/12 = 1.005. Then raising that to the power of 120: (1.005)^120. 
-
-Calculating that, 1.005^120. Let me do this step by step. 1.005^12 equals approximately 1.061677812. Then, raising that to the 10th power would be 1.061677812^10. Wait, no—since it's 120 total periods (12 per year for 10 years), the exponent is 120. 
-
-Alternatively, we can use the rule of 72 to
-
-Tú: 
-Saliendo de la demo.
 
 
 3ª PRUEBA
 
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py 
+(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py
 Iniciando la carga del modelo...
 Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.02s/it]
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.01s/it]
 Cargando el tokenizer (desde caché local)...
 Cargando y fusionando el adaptador desde: ./finr1-qlora-adapter
 
 --- ✅ Modelo listo para chatear ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
-Tú: You have access to a financial calculator tool. Tool Definition: calculate_compound_interest(principal, rate, times_compounded, years). How to use it: principal is the initial amount, rate is the annual rate as a decimal, times_compounded is the number of times compounded per year, and years is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the exact tool command you would use to find the answer, and then provide the final result.
+Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
 FinR1: (Generando respuesta...)
-FinR1: To determine how much money you will have after 10 years with an initial investment of $10,000 at an annual interest rate of 6%, compounded monthly, we can use the compound interest formula:
+FinR1: 1. **Identify the variables**:
+   - Principal (\(P\)) = \$10,000
+   - Annual interest rate (\(r\)) = 6% = 0.06
+   - Compounded \(n\) times per year = 12 (monthly)
+   - Time (\(t\)) = 10 years
 
-\[
-A = P \left(1 + \frac{r}{n}\right)^{nt}
-\]
+2. **Plug the values into the formula**:
+   \[
+   A = P \times \left(1 + \frac{r}{n}\right)^{n \times t}
+   \]
+   Substituting the values:
+   \[
+   A = 10,000 \times \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
+   \]
 
-Where:
-- \( A \) is the amount of money accumulated after \( n \) years, including interest.
-- \( P \) is the principal amount ($10,000).
-- \( r \) is the annual interest rate (decimal) (0.06).
-- \( n \) is the number of times that interest is compounded per year (12).
-- \( t \) is the time the money is invested for in years (10).
+3. **Calculate the exponent**:
+   \[
+   12 \times 10 = 120
+   \]
 
-Plugging in the values:
+4. **Calculate the base**:
+   \[
+   1 + \frac{0.06}{12} = 1 + 0.005 = 1.005
+   \]
 
-\[
-A = 10,000 \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
-\]
+5. **Raise the base to the power of 120**:
+   \[
+   (1.005)^{120}
+   \]
+   Using a calculator for precision:
+   \[
+   (1.005)^{120} \approx 1.81939673
+   \]
 
-First, calculate the monthly interest rate:
+6. **Multiply by the principal**:
+   \[
+   10,000 \times 1.81939673 \approx 18,193.97
+   \]
 
-\[
-\frac{0.06}{12} = 0.005
-\]
+**Final Answer**: After 10 years, the investment will grow to approximately \(\boxed{\$18,194}\). 
 
-Then, compute the exponent:
+The assistant provided a detailed step-by-step explanation using the compound interest formula. Here’s a breakdown of the key steps:
 
-\[
-12 \times 10 = 120
-\]
+1. **Identify Variables**: Confirm the principal amount, interest rate, compounding frequency, and time period.
+2. **Formula Application**: Substitute the values into the compound interest formula.
+3. **Exponent Calculation**: Compute the total number of compounding periods (months in this case).
+4. **Base Adjustment**: Simplify the interest rate per compounding period.
+5. **Power Calculation**: Use a
 
-Now, calculate the base of the exponent:
-
-\[
-1 + 0.005 = 1.005
-\]
-
-Raise this to the power of 120:
-
-\[
-1.005^{120}
-\]
-
-Using logarithms or a calculator, find:
-
-\[
-1.005^{120} \approx 1.81939673
-\]
-
-Finally, multiply by the principal amount:
-
-\[
-10,000 \times 1.81939673 \approx 18,193.9673
-\]
-
-So, after 10 years, the amount will be approximately $18,194.
-
-**Exact Tool Command**:  
-`calculate_compound_interest(10000, 0.06, 12, 10)`
-
-**Final Result**:  
-\boxed{18193.97}
-[/S]
-```python
-# Python code to verify the calculation using the provided function
-
-def calculate_compound_interest(principal, rate, times_compounded, years):
-    import math
-
-Tú: You have access to a financial calculator tool. Tool Definition: calculate_compound_interest(principal, rate, times_compounded, years). How to use it: principal is the initial amount, rate is the annual rate as a decimal, times_compounded is the number of times compounded per year, and years is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the exact tool command you would use to find the answer, and then provide the final result.
+Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
 FinR1: (Generando respuesta...)
-FinR1: To determine how much money you will have after 10 years with a principal investment of $10,000 at an annual interest rate of 6%, compounded monthly, we can use the compound interest formula. However, since you mentioned using a financial calculator tool, the appropriate function to use is `calculate_compound_interest`. 
+FinR1: 1. **Identify the values**:
+   - Principal (\(P\)) = \$10,000
+   - Annual rate (\(r\)) = 6% (or 0.06 as a decimal)
+   - Compounded per year (\(n\)) = 12 (monthly compounding)
+   - Time (\(t\)) = 10 years
 
-The parameters required for this function are:
-- **principal**: The initial amount of money ($10,000).
-- **rate**: The annual interest rate (6%, which is 0.06 in decimal form).
-- **times_compounded**: The number of times the interest is compounded per year (monthly, so 12 times).
-- **years**: The number of years the money is invested (10 years).
+2. **Plug the values into the formula**:
+   \[
+   A = P \times \left(1 + \frac{r}{n}\right)^{n \times t}
+   \]
+   Substituting the numbers:
+   \[
+   A = 10,000 \times \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
+   \]
 
-The exact command to input into the tool would be:
+3. **Simplify the components**:
+   - Calculate the monthly interest rate: \( \frac{0.06}{12} = 0.005 \)
+   - Total exponent: \( 12 \times 10 = 120 \)
 
-```python
-calculate_compound_interest(10000, 0.06, 12, 10)
-```
+4. **Compute the base**:
+   \[
+   1 + 0.005 = 1.005
+   \]
 
-After executing this command, the result would be calculated as follows:
+5. **Raise to the power**:
+   \[
+   (1.005)^{120}
+   \]
+   Using a calculator, this equals approximately \( 1.005^{120} \approx 1.8194 \)
 
+6. **Multiply by the principal**:
+   \[
+   10,000 \times 1.8194 = 18,194
+   \]
+
+**Final Answer**: After 10 years, the investment will grow to approximately \$18,194. 
+
+\boxed{18194}
+To ensure accuracy, let's verify the calculation step-by-step:
+
+1. **Principal (P)**: \$10,000  
+2. **Annual Rate (r)**: 6% → 0.06  
+3. **Compounded per Year (n)**: 12  
+4. **Time (t)**: 10 years  
+
+Plugging into the formula:  
 \[
-A = P \left(1 + \frac{r}{n}\right)^{nt}
-\]
-
-Where:
-- \( A \) is the amount of money accumulated after n years, including interest.
-- \( P \) is the principal amount ($10,000).
-- \( r \) is the annual interest rate (decimal) (0.06).
-- \( n \) is the number of times that interest is compounded per year (12).
-- \( t \) is the time the money is invested for in years (10).
-
-Plugging in the values:
-
-\[
-A = 10000 \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
-\]
-
-First, compute the monthly interest rate:
-
-\[
-\frac{0.06}{12} = 0.005
-\]
-
-Then, calculate the exponent:
-
-\[
-12 \times 10 = 120
-\]
-
-So the equation becomes:
-
-\[
-A = 10000 \left(1 + 0.005\right)^{120}
-\]
-
-Next, compute \( 1.005^{120} \). This can be done using logarithms or iterative multiplication. For simplicity, using a calculator:
-
-\[
-1.005^{120
-
-Tú: You must solve the following problem using the compound interest formula. Formula Definition: A = P * (1 + r/n)^(n*t). How to use it: P is the initial amount, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result.
-FinR1: (Generando respuesta...)
-FinR1: 10,000*(1+0.06/12)^(12*10)=10,000*(1.005)^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005^120=10,000*1.005
+A = 10,000 \times \left(1 + \frac{0
 
 Tú: 
 Saliendo de la demo.
