@@ -1,6 +1,6 @@
 # Contenido completo del script de Python para smolagents
 import torch
-# --- CAMBIO: Importar la clase de modelo correcta ---
+# --- ASEGÚRATE DE TENER ESTA IMPORTACIÓN ---
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from smolagents import CodeAgent, Tool, TransformersModel
 
@@ -38,8 +38,8 @@ def main():
     print("--- Cargando modelo (sin cuantización)... ---")
     smolagents_model = TransformersModel(
         model_id=model_id,
-        # --- ESTA ES LA LÍNEA DE CORRECCIÓN ---
-        # Esto evita que smolagents intente cargarlo como un modelo de Imagen-a-Texto
+        # --- ESTA ES LA LÍNEA CRÍTICA ---
+        # Fuerza a usar la clase correcta para modelos de texto
         auto_class=AutoModelForCausalLM,
         # ------------------------------------------------
         device_map="auto",
