@@ -1,103 +1,52 @@
-1ª PRUEBA
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ python demoConv.py 
-Iniciando la carga del modelo...
-Cargando el modelo base (desde caché local): SUFE-AIFLM-Lab/Fin-R1...
-Loading checkpoint shards: 100%|█████████████████████████████████████████████████| 4/4 [00:04<00:00,  1.02s/it]
-Cargando el tokenizer (desde caché local)...
+# TOOL CALLING
 
---- ✅ Modelo BASE listo para chatear ---
+--- Modelo cargado exitosamente ---
+
+--- 1. Generando llamada a la herramienta (Turno 1) ---
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Salida del modelo (raw): <tool_call>
+{"tool": "financial_calculator", "input": {"P": 10000, "r": 0.06, "n": 12, "t": 10}}
+</tool_call>
+
+
+--- 2. Parseando y ejecutando la herramienta ---
+JSON de la herramienta extraído: {'tool': 'financial_calculator', 'input': {'P': 10000, 'r': 0.06, 'n': 12, 't': 10}}
+Resultado de la herramienta (cálculo real): 18,193.97
+
+--- 3. Generando respuesta final (Turno 2) ---
+
+--- RESPUESTA FINAL (del Modelo) --- 
+The amount of money you will have after 10 years, starting with a principal of $10,000 at an annual interest rate of 6% compounded monthly, is approximately $18,193.97. This calculation uses the compound interest formula provided by the financial calculator tool. The process involves compounding the interest 12 times per year over 10 years, which significantly grows the initial investment due to the effect of compounding.
+
+
+
+# PREGUNTA SIMPLE
+
+--- ✅ Modelo listo para chatear (Modo Determinista) ---
 Escribe tu prompt. Escribe "salir" para terminar.
 
 Tú: What is a stock?
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base):  A stock represents ownership in a company. When you buy a stock, you become a shareholder of that company and own a portion of its assets and profits. The value of the stock can fluctuate based on market conditions and the company's performance. Companies issue stocks to raise capital, and these stocks are traded on stock exchanges. Each stock typically represents a single share of ownership. For example, if a company has issued one million shares and you own 100 shares, you own 0.01% of the company. Stocks can be bought and sold on the secondary market, and their prices are determined by supply and demand. Understanding the basics of stocks is important for anyone interested in investing or financial planning. 
+FinR1: (Generando respuesta...)
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+FinR1: A stock represents ownership in a corporation and is a type of security that can be purchased or sold. When you buy a stock, you become a shareholder of the company, which means you own a portion of the company's assets and earnings. Each share of stock typically represents a fractional ownership stake in the company. 
 
----
+Stocks are traded on stock exchanges, such as the New York Stock Exchange (NYSE) or NASDAQ, where buyers and sellers come together to trade shares. The price of a stock fluctuates based on supply and demand, as well as other factors like company performance, market conditions, and economic indicators.
 
-[s]
+Investing in stocks can provide potential returns through capital appreciation (the increase in stock price) and dividends (a portion of the company's profits distributed to shareholders). However, it also carries risks, including the possibility of losing some or all of your investment if the stock price declines.
+
+There are different types of stocks, such as common stock and preferred stock. Common stockholders usually have voting rights in corporate decisions, while preferred stockholders may have priority in receiving dividends and assets during liquidation but typically don't have voting rights. Additionally, stocks can be categorized based on their industry, size (small-cap, mid-cap, large-cap), and growth potential (value or growth).
+
+Understanding the basics of stocks is important for anyone interested in investing, as they form a significant part of many investment portfolios. It's also crucial to research thoroughly and consider seeking advice from financial professionals before making investment decisions.
 
 Tú: What is a stock?
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base):  A stock represents ownership in a company. When you purchase a stock, you become a shareholder of that company, meaning you own a portion of the company's assets and earnings. The price of a stock fluctuates based on market demand, and owning stocks can be a way to invest in the stock market with the potential for growth or profit. For example, if a company performs well and its value increases, the value of your shares may also rise, allowing you to sell them at a higher price for a profit. Conversely, if the company underperforms, the stock price may decrease, leading to a loss if you decide to sell. 
+FinR1: (Generando respuesta...)
+FinR1: A stock represents ownership in a corporation and is a type of security that can be purchased or sold. When you buy a stock, you become a shareholder of the company, which means you own a portion of the company's assets and earnings. Each share of stock typically represents a fractional ownership stake in the company. 
 
-Stocks are typically bought and sold through a stock exchange, such as the New York Stock Exchange (NYSE) or NASDAQ. Each share of stock represents a small ownership stake in the company, and the total number of shares outstanding is determined by the company's charter. Companies issue new shares to raise capital, which can dilute existing shareholders' ownership percentage. 
+Stocks are traded on stock exchanges, such as the New York Stock Exchange (NYSE) or NASDAQ, where buyers and sellers come together to trade shares. The price of a stock fluctuates based on supply and demand, as well as other factors like company performance, market conditions, and economic indicators.
 
-Investors can choose to buy individual stocks or create a diversified portfolio by investing in multiple companies across various sectors. This helps spread risk, as the performance of one stock doesn't necessarily impact all others in the portfolio. Additionally, stocks can pay dividends, which are distributions of profits to shareholders, often quarterly. These dividends can provide regular income, though they are not guaranteed and depend on the company's financial health.
+Investing in stocks can provide potential returns through capital appreciation (the increase in stock price) and dividends (a portion of the company's profits distributed to shareholders). However, it also carries risks, including the possibility of losing some or all of your investment if the stock price declines.
 
-In summary, a stock is a type of security that signifies ownership in a corporation and serves as a means to raise funds for business operations. It carries both risks and rewards, making it a fundamental component of many investment strategies. [/S]
-[/INST]
+There are different types of stocks, such as common stock and preferred stock. Common stockholders usually have voting rights in corporate decisions, while preferred stockholders may have priority in receiving dividends and assets during liquidation but typically don't have voting rights. Additionally, stocks can be categorized based on their industry, size (small-cap, mid-cap, large-cap), and growth potential (value or growth).
 
-Tú: 
-Saliendo de la demo.
+Understanding the basics of stocks is important for anyone interested in investing, as they form a significant part of many investment portfolios. It's also crucial to research thoroughly and consider seeking advice from financial professionals before making investment decisions.
 
-2º PRUEBA
-
---- ✅ Modelo BASE listo para chatear ---
-Escribe tu prompt. Escribe "salir" para terminar.
-
-Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base): 47,830.09 [INST]
-
-Tú: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base): 35483.15[/S]
-[s]
-
-Tú: 
-Saliendo de la demo.
-(base) jovyan@c548078baf6f:~/work/pruebaTFG$ 
-
-
-3ª PRUEBA
-
---- ✅ Modelo BASE listo para chatear ---
-Escribe tu prompt. Escribe "salir" para terminar.
-
-Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base):  [OUT]
-
-Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base):  [OUT]
-
-Tú: You have access to a financial calculator tool that can solve the compound interest formula: A = P * (1 + r/n)^(n*t). In this formula, P is the principal, r is the annual rate as a decimal, n is the number of times compounded per year, and t is the number of years. My Question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Please show the calculation by plugging the numbers into the formula, and then provide the final result from your calculator.
-FinR1 (Base): (Generando respuesta...)
-FinR1 (Base): 1. **Identify the variables**:
-   - Principal (P): $10,000
-   - Annual interest rate (r): 6% → 0.06 (as a decimal)
-   - Compounded monthly (n): 12 times per year
-   - Time (t): 10 years
-
-2. **Plug the values into the compound interest formula**:
-   \[
-   A = P \times \left(1 + \frac{r}{n}\right)^{n \times t}
-   \]
-   Substituting the values:
-   \[
-   A = 10,000 \times \left(1 + \frac{0.06}{12}\right)^{12 \times 10}
-   \]
-
-3. **Simplify the components**:
-   - First, calculate the monthly interest rate: \( \frac{0.06}{12} = 0.005 \)
-   - Then, add 1 to the monthly rate: \( 1 + 0.005 = 1.005 \)
-   - Next, compute the exponent: \( 12 \times 10 = 120 \)
-
-4. **Calculate the base raised to the exponent**:
-   \[
-   1.005^{120}
-   \]
-   This requires a calculator step. Let's compute this value step-by-step or approximate it.
-
-   - Using a calculator for precision: \( 1.005^{120} \approx 1.8194 \)
-
-5. **Multiply by the principal**:
-   \[
-   A = 10,000 \times 1.8194 \approx 18,194
-   \]
-
-6. **Final result**:
-   After 10 years, the investment will grow to approximately $18,194.
-
-\boxed{18,194} [INST]
