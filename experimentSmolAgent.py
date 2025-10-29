@@ -38,7 +38,7 @@ def main():
     print("--- Cargando modelo (sin cuantización)... ---")
     smolagents_model = TransformersModel(
         model_id=model_id,
-        # --- CAMBIO: Forzar la clase de modelo correcta ---
+        # --- ESTA ES LA LÍNEA DE CORRECCIÓN ---
         # Esto evita que smolagents intente cargarlo como un modelo de Imagen-a-Texto
         auto_class=AutoModelForCausalLM,
         # ------------------------------------------------
