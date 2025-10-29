@@ -5,7 +5,8 @@ from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.tools import tool
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentExecutor, create_react_agent # <--- CAMBIO: Importamos create_react_agent
+from langchain import hub # <--- CAMBIO: Importamos el hub para el prompt
 
 # --- 1. Definición de la Herramienta (Estilo Langchain/Pydantic y @tool) ---
 class FinancialCalculatorInput(BaseModel):
@@ -30,17 +31,15 @@ def main():
     print(f"--- Iniciando experimento con langchain y modelo: {model_id} ---")
 
     # --- 3. Carga del Modelo y Tokenizer (Sin Cuantización) ---
-    # Directriz: Carga SIN cuantización (torch.bfloat16)
     print("--- Cargando modelo y tokenizer (sin cuantización)... ---")
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         torch_dtype=torch.bfloat16, # Carga en precisión original
         device_map="auto",
-        trust_remote_code=True      # Requerido por Fin-R1
+        trust_remote_code=True
     )
 
-    # Ajustar pad_token si es necesario
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = model.config.eos_token_id
@@ -48,46 +47,35 @@ def main():
     print("--- Modelo y tokenizer cargados ---")
 
     # --- 4. Creación del Pipeline (Determinista) ---
-    # Directriz: Generación DETERMINISTA (do_sample=False)
     hf_pipeline = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        model_kwargs={"use_cache": True}, # Optimización
-        # Parámetros de generación determinista
+        model_kwargs={"use_cache": True},
         pipeline_kwargs={
             "max_new_tokens": 512,
-            "do_sample": False
-            # No incluir temperature ni top_p
+            "do_sample": False # Directriz: Generación Determinista
         }
     )
     
-    # Envolver el pipeline para Langchain
     llm = HuggingFacePipeline(pipeline=hf_pipeline)
     print("--- Pipeline de Hugging Face creado ---")
 
-    # --- 5. Creación del Agente (LCEL) ---
-    # Nota: Los modelos base necesitan un prompt claro que les indique llamar a herramientas.
-    # El modelo SUFE-AIFLM-Lab/Fin-R1 no está específicamente fine-tuneado para Langchain Agent,
-    # por lo que su capacidad para seguir el formato puede variar.
+    # --- 5. Creación del Agente (LCEL - Método ReAct) ---
     tools = [financial_calculator]
     
-    # Prompt que instruye al modelo sobre cómo usar las herramientas
-    # Este prompt es genérico para agentes tool-calling en Langchain
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", "You are a helpful assistant that can use tools."),
-            ("user", "{input}"),
-            ("placeholder", "{agent_scratchpad}"), # Donde el agente pone sus pensamientos/llamadas
-        ]
-    )
-
-    # Crear el agente usando la función recomendada de Langchain
-    agent = create_tool_calling_agent(llm, tools, prompt)
+    # --- CAMBIO: Usamos un prompt ReAct estándar de Langchain Hub ---
+    # Este prompt le enseña al modelo a "pensar" (Thought:) y "actuar" (Action:)
+    prompt = hub.pull("hwchase17/react") 
+    print("--- Prompt ReAct cargado desde Langchain Hub ---")
+    
+    # --- CAMBIO: Usamos create_react_agent ---
+    # Este agente es compatible con LLMs que no tienen .bind_tools
+    agent = create_react_agent(llm, tools, prompt)
 
     # Crear el ejecutor del agente
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True) # verbose=True muestra los pasos
-    print("--- Agente Langchain creado ---")
+    print("--- Agente Langchain (ReAct) creado ---")
 
     # --- 6. Ejecución del Query ---
     user_query = "I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Use the financial calculator tool."

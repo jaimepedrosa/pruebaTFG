@@ -1,5 +1,6 @@
 # Contenido completo del script de Python para smolagents
 import torch
+# --- CAMBIO: Importar la clase de modelo correcta ---
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from smolagents import CodeAgent, Tool, TransformersModel
 
@@ -34,11 +35,13 @@ def main():
     print(f"--- Iniciando experimento con smolagents y modelo: {model_id} ---")
 
     # --- 3. Carga del Modelo (TransformersModel) ---
-    # Directriz: Carga SIN cuantización (torch.bfloat16)
-    # Directriz: Generación DETERMINISTA (do_sample=False)
     print("--- Cargando modelo (sin cuantización)... ---")
     smolagents_model = TransformersModel(
         model_id=model_id,
+        # --- CAMBIO: Forzar la clase de modelo correcta ---
+        # Esto evita que smolagents intente cargarlo como un modelo de Imagen-a-Texto
+        auto_class=AutoModelForCausalLM,
+        # ------------------------------------------------
         device_map="auto",
         model_kwargs={
             "torch_dtype": torch.bfloat16, # Carga en precisión original
@@ -46,8 +49,7 @@ def main():
         },
         generation_kwargs={              # Parámetros para inferencia determinista
             "do_sample": False,
-            "max_new_tokens": 512,       # Límite para evitar salidas infinitas
-            # No incluir temperature ni top_p
+            "max_new_tokens": 512,
         }
     )
     print("--- Modelo cargado ---")
@@ -56,7 +58,7 @@ def main():
     agent = CodeAgent(
         tools=[FinancialCalculatorTool()],
         model=smolagents_model,
-        system_prompt="You are a helpful assistant that uses tools. Respond with the final answer based on the tool result." # Prompt simple
+        system_prompt="You are a helpful assistant that uses tools. Respond with the final answer based on the tool result."
     )
     print("--- Agente smolagents inicializado ---")
 
