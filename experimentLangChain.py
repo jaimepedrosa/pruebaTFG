@@ -5,8 +5,8 @@ from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.tools import tool
-from langchain.agents import AgentExecutor, create_react_agent # <--- CAMBIO: Importamos create_react_agent
-from langchain import hub # <--- CAMBIO: Importamos el hub para el prompt
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain import hub # Requiere 'pip install --user langchainhub'
 
 # --- 1. Definición de la Herramienta (Estilo Langchain/Pydantic y @tool) ---
 class FinancialCalculatorInput(BaseModel):
@@ -47,15 +47,16 @@ def main():
     print("--- Modelo y tokenizer cargados ---")
 
     # --- 4. Creación del Pipeline (Determinista) ---
+    # --- CAMBIO AQUÍ: Los argumentos de generación van directos ---
     hf_pipeline = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        model_kwargs={"use_cache": True},
-        pipeline_kwargs={
-            "max_new_tokens": 512,
-            "do_sample": False # Directriz: Generación Determinista
-        }
+        model_kwargs={"use_cache": True}, # Optimización
+        # --- Argumentos de generación determinista ---
+        max_new_tokens=512,
+        do_sample=False,
+        pad_token_id=model.config.pad_token_id # Aseguramos el pad_token
     )
     
     llm = HuggingFacePipeline(pipeline=hf_pipeline)
@@ -64,17 +65,13 @@ def main():
     # --- 5. Creación del Agente (LCEL - Método ReAct) ---
     tools = [financial_calculator]
     
-    # --- CAMBIO: Usamos un prompt ReAct estándar de Langchain Hub ---
     # Este prompt le enseña al modelo a "pensar" (Thought:) y "actuar" (Action:)
     prompt = hub.pull("hwchase17/react") 
     print("--- Prompt ReAct cargado desde Langchain Hub ---")
     
-    # --- CAMBIO: Usamos create_react_agent ---
-    # Este agente es compatible con LLMs que no tienen .bind_tools
     agent = create_react_agent(llm, tools, prompt)
 
-    # Crear el ejecutor del agente
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True) # verbose=True muestra los pasos
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     print("--- Agente Langchain (ReAct) creado ---")
 
     # --- 6. Ejecución del Query ---
@@ -82,7 +79,6 @@ def main():
     
     print(f"\n--- Query de Usuario: {user_query} ---")
     
-    # Invocar al agente
     response = agent_executor.invoke({"input": user_query})
     
     print(f"\n--- Respuesta Final del Agente: ---")
