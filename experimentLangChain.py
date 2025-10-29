@@ -71,7 +71,7 @@ def main():
     
     agent = create_react_agent(llm, tools, prompt)
 
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
     print("--- Agente Langchain (ReAct) creado ---")
 
     # --- 6. Ejecución del Query ---
