@@ -1,6 +1,6 @@
 # Contenido completo del script de Python para smolagents
 import torch
-# --- ASEGÚRATE DE TENER ESTA IMPORTACIÓN ---
+# --- Importar la clase de modelo correcta ---
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from smolagents import CodeAgent, Tool, TransformersModel
 
@@ -38,14 +38,11 @@ def main():
     print("--- Cargando modelo (sin cuantización)... ---")
     smolagents_model = TransformersModel(
         model_id=model_id,
-        # --- ESTA ES LA LÍNEA CRÍTICA ---
-        # Fuerza a usar la clase correcta para modelos de texto
+        # Forzamos la clase correcta
         auto_class=AutoModelForCausalLM,
-        # ------------------------------------------------
         device_map="auto",
         model_kwargs={
-            "torch_dtype": torch.bfloat16, # Carga en precisión original
-            "trust_remote_code": True      # Requerido por Fin-R1
+            "trust_remote_code": True
         },
         generation_kwargs={              # Parámetros para inferencia determinista
             "do_sample": False,
