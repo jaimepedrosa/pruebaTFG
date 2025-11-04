@@ -169,27 +169,12 @@ El modelo prefiere "razonar en voz alta" (como en tu Prueba 3 exitosa) en lugar 
 OUTPUT:
 (base) jovyan@3aadfb9636fc:~/work/pruebaTFG$ python experimentLangChain.py
 --- Iniciando experimento con langchain y modelo: SUFE-AIFLM-Lab/Fin-R1 ---
---- Cargando modelo y tokenizer (sin cuantización)... ---
-tokenizer_config.json: 7.31kB [00:00, 36.3MB/s]
-vocab.json: 2.78MB [00:00, 153MB/s]
-merges.txt: 1.67MB [00:00, 211MB/s]
-tokenizer.json: 7.03MB [00:00, 244MB/s]
-added_tokens.json: 100%|██████████████████████████████████████████████████| 605/605 [00:00<00:00, 1.41MB/s]
-special_tokens_map.json: 100%|████████████████████████████████████████████| 613/613 [00:00<00:00, 9.25MB/s]
-config.json: 100%|████████████████████████████████████████████████████████| 788/788 [00:00<00:00, 10.3MB/s]
-`torch_dtype` is deprecated! Use `dtype` instead!
-model.safetensors.index.json: 27.8kB [00:00, 143MB/s]
-model-00004-of-00004.safetensors: 100%|███████████████████████████████| 1.09G/1.09G [00:26<00:00, 40.5MB/s]
-model-00003-of-00004.safetensors: 100%|███████████████████████████████| 4.33G/4.33G [01:28<00:00, 48.9MB/s]
-model-00002-of-00004.safetensors: 100%|███████████████████████████████| 4.93G/4.93G [01:40<00:00, 49.2MB/s]
-model-00001-of-00004.safetensors: 100%|███████████████████████████████| 4.88G/4.88G [02:09<00:00, 37.7MB/s]
-Fetching 4 files: 100%|██████████████████████████████████████████████████████| 4/4 [02:09<00:00, 32.43s/it]
-Loading checkpoint shards: 100%|█████████████████████████████████████████████| 4/4 [00:02<00:00,  1.39it/s]
-generation_config.json: 100%|█████████████████████████████████████████████| 243/243 [00:00<00:00, 3.20MB/s]
+
 --- Modelo y tokenizer cargados ---00%|████████████████████████████████| 4.88G/4.88G [02:09<00:00, 265MB/s]
 Device set to use cuda:0
 The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
 Device set to use cuda:0
+
 --- Pipelines de Hugging Face creados ---
 --- Cadena LCEL creada ---
 
@@ -212,7 +197,7 @@ Assistant:<tool_call>
 {"tool": "financial_calculator", "input": {"P": 10000, "r": 0.06, "n": 12, "t": 10}}
 ```
 ---
-Error: JSON malformado en <tool_call>: Expecting value: line 1 column 1 (char 0)
+Error: JSON malformado en <tool_call>: Expecting value: line 1 column 1 (char 0)  ## MIRAR COMO ESPERA LANGCHAIN EL FORMATO PARA QUE EL BACKEND RECONOZCA UNA LLAMADA DE HERRAMIENTA
 
 --- Respuesta Final del Agente: ---
 System: You are a helpful financial assistant. You have received the result from a calculation.
