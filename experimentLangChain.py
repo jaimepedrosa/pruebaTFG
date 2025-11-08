@@ -1,4 +1,4 @@
-# Contenido completo del script de Python para langchain (Versión LCEL Robusta)
+# Contenido completo del script de Python para langchain (Versión Corregida)
 import torch
 import json
 import re
@@ -31,15 +31,36 @@ def financial_calculator(P: float, r: float, n: int, t: float) -> str:
 def parse_tool_call(llm_output: str) -> dict | None:
     """Extrae el JSON de <tool_call>."""
     print(f"\n--- Intentando parsear salida LLM (Turno 1):\n{llm_output}\n---")
-    match = re.search(r"<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+    # --- CORRECCIÓN DE REGEX ---
+    # Buscamos la llamada a la herramienta que NO esté dentro del prompt de sistema.
+    # Esta regex busca el texto que sigue a la ÚLTIMA aparición de 'Assistant:'
+    match = re.search(r"Assistant:(.*?)<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+    
+    # Si no la encuentra (porque el modelo solo generó el tool_call), probamos la regex simple
+    if not match:
+        match = re.search(r"<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+
     if match:
-        tool_call_json = match.group(1).strip()
+        # El JSON es el último grupo capturado
+        tool_call_json = match.group(match.lastindex).strip()
         try:
             parsed = json.loads(tool_call_json)
             print(f"--- JSON parseado correctamente: {parsed} ---")
             return parsed
         except json.JSONDecodeError as e:
-            print(f"Error: JSON malformado en <tool_call>: {e}")
+            # El JSON estaba malformado (posiblemente por el ejemplo del prompt)
+            print(f"Error: JSON malformado en <tool_call>. Intentando de nuevo solo con la salida... {e}")
+            # Como plan B, buscamos solo la última llamada
+            match_last = re.search(r".*<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+            if match_last:
+                tool_call_json = match_last.group(1).strip()
+                try:
+                    parsed = json.loads(tool_call_json)
+                    print(f"--- JSON (Plan B) parseado correctamente: {parsed} ---")
+                    return parsed
+                except json.JSONDecodeError:
+                    print(f"Error: Falló el Plan B. JSON final malformado.")
+                    return None
             return None
     else:
         print("Advertencia: No se encontró <tool_call>.")
@@ -73,17 +94,32 @@ def main():
     print("--- Modelo y tokenizer cargados ---")
 
     # --- 4. Creación del Pipeline (Determinista) ---
+    
+    # --- SOLUCIÓN: DEFINIR TOKENS DE PARADA ---
+    # Creamos una lista de IDs de token que forzarán la parada.
+    # Incluimos el token de fin de secuencia normal y el token de </tool_call>
+    stop_token_id = tokenizer.encode("</tool_call>", add_special_tokens=False)[-1]
+    eos_token_ids = [tokenizer.eos_token_id, stop_token_id]
+    # ----------------------------------------
+
     # Pipeline para la llamada a la herramienta (salida corta)
     tool_pipe = pipeline(
         "text-generation", model=model, tokenizer=tokenizer, model_kwargs={"use_cache": True},
-        max_new_tokens=150, do_sample=False, pad_token_id=model.config.pad_token_id
+        max_new_tokens=150, 
+        do_sample=False, 
+        pad_token_id=model.config.pad_token_id,
+        # --- SOLUCIÓN: PASAR LOS TOKENS DE PARADA A LA PIPELINE ---
+        generation_kwargs={"eos_token_id": eos_token_ids}
     )
     tool_llm = HuggingFacePipeline(pipeline=tool_pipe)
 
     # Pipeline para la respuesta final (salida más larga)
     final_pipe = pipeline(
         "text-generation", model=model, tokenizer=tokenizer, model_kwargs={"use_cache": True},
-        max_new_tokens=512, do_sample=False, pad_token_id=model.config.pad_token_id
+        max_new_tokens=512, 
+        do_sample=False, 
+        pad_token_id=model.config.pad_token_id
+        # No pasamos el stop_token_id aquí, ya que SÍ queremos que hable
     )
     final_llm = HuggingFacePipeline(pipeline=final_pipe)
     print("--- Pipelines de Hugging Face creados ---")
@@ -108,21 +144,27 @@ Example:
          ("ai", "Based on the calculation, the answer to your question is:")
     ])
 
-    # Cadena LCEL
-    chain = (
-        # Guardar la entrada original
+    # --- SOLUCIÓN: CADENA LCEL MÁS ROBUSTA ---
+    # Esta cadena pasa explícitamente las variables correctas a cada paso.
+    
+    # 1. Cadena para el primer turno (generar y ejecutar herramienta)
+    chain_turn_1 = (
         RunnablePassthrough.assign(original_input=lambda x: x["input"])
-        # Generar la llamada
         | RunnablePassthrough.assign(llm_tool_call_output=tool_call_prompt | tool_llm | StrOutputParser())
-        # Parsear la llamada
         | RunnablePassthrough.assign(parsed_call=RunnableLambda(lambda x: parse_tool_call(x["llm_tool_call_output"])))
-        # Ejecutar la herramienta
         | RunnablePassthrough.assign(tool_result=RunnableLambda(lambda x: invoke_tool(x["parsed_call"])))
-        # Generar la respuesta final usando el resultado y la entrada original
-        | final_response_prompt
+    )
+
+    # 2. Cadena para el segundo turno (generar respuesta final)
+    # Esta cadena toma el diccionario de salida de la cadena 1
+    chain_turn_2 = (
+        final_response_prompt
         | final_llm
         | StrOutputParser()
     )
+
+    # Cadena LCEL completa
+    chain = chain_turn_1 | chain_turn_2
     print("--- Cadena LCEL creada ---")
 
     # --- 6. Ejecución del Query ---
@@ -138,104 +180,3 @@ Example:
 
 if __name__ == "__main__":
     main()
-
-
-"""
-Podemos concluir que FinR1 está funcionando con LangChain, pero el experimento está fallando por un motivo muy específico.
-
-LangChain está haciendo su trabajo (cargar el modelo, crear la cadena, ejecutarla), pero el modelo Fin-R1 no está siguiendo las instrucciones que le da LangChain.
-
-## Diagnóstico
-LangChain Funciona: La cadena LCEL se ejecutó.
-
-Turno 1: La Petición: LangChain le envió al modelo un prompt que decía: "Responde SÓLO con un JSON envuelto en etiquetas <tool_call>".
-
-El Modelo Falla: El modelo Fin-R1 (que no está entrenado para ser un agente) ignoró esa instrucción. En lugar de generar sólo el JSON, generó la llamada a la herramienta correctamente... y luego siguió hablando, añadiendo un bloque de json en markdown después de la etiqueta </tool_call>.
-
-El Parser Falla: La función parse_tool_call recibió este texto "sucio" (con el JSON extra) y falló al intentar parsearlo, devolviendo un error.
-
-Turno 2: El Error: La cadena LCEL (correctamente) le pasó ese error al modelo en el siguiente turno.
-
-El Modelo se Confunde: El modelo recibió la pregunta original OTRA VEZ, junto con el mensaje de "Error". Confundido, intentó resolver el problema él mismo (sin la herramienta) y se equivocó en las matemáticas (calculó $17,908.48).
-
-## Conclusión
-Sí, LangChain funciona, pero el modelo base SUFE-AIFLM-Lab/Fin-R1 no es un buen "agente de herramientas" sin un fine-tuning específico para que siga el formato de Thought/Action/Final Answer o el formato de JSON estricto.
-
-El modelo prefiere "razonar en voz alta" (como en tu Prueba 3 exitosa) en lugar de ser forzado a generar una llamada a una herramienta.
-
-"""
-
-"""
-OUTPUT:
-(base) jovyan@3aadfb9636fc:~/work/pruebaTFG$ python experimentLangChain.py
---- Iniciando experimento con langchain y modelo: SUFE-AIFLM-Lab/Fin-R1 ---
-
---- Modelo y tokenizer cargados ---00%|████████████████████████████████| 4.88G/4.88G [02:09<00:00, 265MB/s]
-Device set to use cuda:0
-The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
-Device set to use cuda:0
-
---- Pipelines de Hugging Face creados ---
---- Cadena LCEL creada ---
-
---- Query de Usuario: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? ---
-
---- Intentando parsear salida LLM (Turno 1):
-System: You are an assistant that MUST use the financial_calculator tool.
-Tool definition: financial_calculator(P: float, r: float, n: int, t: float).
-You MUST output ONLY the tool call in JSON format wrapped in <tool_call> tags. DO NOT add any other text.
-Example:
-<tool_call>
-{"tool": "financial_calculator", "input": {"P": 100, "r": 0.05, "n": 4, "t": 2}}
-</tool_call>
-Human: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years? Use the financial calculator function.
-
-Assistant:<tool_call>
-{"tool": "financial_calculator", "input": {"P": 10000, "r": 0.06, "n": 12, "t": 10}}
-</tool_call>
-```json
-{"tool": "financial_calculator", "input": {"P": 10000, "r": 0.06, "n": 12, "t": 10}}
-```
----
-Error: JSON malformado en <tool_call>: Expecting value: line 1 column 1 (char 0)  ## MIRAR COMO ESPERA LANGCHAIN EL FORMATO PARA QUE EL BACKEND RECONOZCA UNA LLAMADA DE HERRAMIENTA
-
---- Respuesta Final del Agente: ---
-System: You are a helpful financial assistant. You have received the result from a calculation.
-Human: Original question: I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?
-Calculation Result: Error: No se pudo ejecutar la herramienta debido a un fallo en la llamada o el parseo.
-AI: Based on the calculation, the answer to your question is: approximately $17,908.48. Let me explain how this number was derived.
-
-First, we need to understand the formula for compound interest when it's compounded more than once a year. The formula is:
-
-A = P * (1 + r/n)^(n*t)
-
-Where:
-- A is the amount of money accumulated after n years, including interest.
-- P is the principal amount ($10,000 in this case).
-- r is the annual interest rate (6%, or 0.06 as a decimal).
-- n is the number of times that interest is compounded per year (12 times for monthly compounding).
-- t is the time the money is invested for, in years (10 years here).
-
-Plugging in the numbers:
-
-A = 10,000 * (1 + 0.06/12)^(12*10)
-A = 10,000 * (1 + 0.005)^(120)
-A = 10,000 * (1.005)^120
-
-Calculating (1.005)^120 requires a calculator. Let me compute that step by step. 
-
-First, let's compute 1.005^12. Since 12 is a multiple of 120 divided by 10, we can use exponentiation by squaring or other methods. Alternatively, using a calculator approximation:
-
-1.005^12 ≈ 1.061677812
-
-Then, raising that result to the power of 10 (since 120 = 12*10):
-
-(1.061677812)^10 ≈ 1.790847696
-
-So multiplying by the principal amount:
-
-10,000 * 1.790847696 ≈ 17,908.48
-
-Therefore, after 10 years, the investment would grow to approximately $17,908.48. This accounts for the compounding effect of the interest being applied monthly over the decade. It's important to note that this calculation assumes no additional deposits or withdrawals are made during the period, and the interest rate remains constant. If either of these assumptions were different, the final amount could
-
-"""
