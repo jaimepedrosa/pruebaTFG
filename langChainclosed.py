@@ -1,0 +1,159 @@
+# Contenido completo del script de Python para langchain (Corrección de Prompt Final)
+import torch
+import json
+import re
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from langchain_huggingface import HuggingFacePipeline
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.tools import tool
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+
+# --- 1. Definición de la Herramienta ---
+class FinancialCalculatorInput(BaseModel):
+    """Entradas para la calculadora financiera."""
+    P: float = Field(description="Principal amount")
+    r: float = Field(description="Annual interest rate as decimal (e.g., 0.06 for 6%)")
+    n: int = Field(description="Times compounded per year")
+    t: float = Field(description="Time in years")
+
+@tool("financial_calculator", args_schema=FinancialCalculatorInput)
+def financial_calculator(P: float, r: float, n: int, t: float) -> str:
+    """Computes compound interest and returns the result."""
+    print(f"\n--- Ejecutando Herramienta (Langchain): financial_calculator(P={P}, r={r}, n={n}, t={t}) ---")
+    result = P * (1 + r/n) ** (n*t)
+    result_str = f"{result:,.2f}"
+    print(f"--- Resultado Herramienta (Langchain): {result_str} ---")
+    return result_str
+
+# --- Función para parsear la llamada ---
+def parse_tool_call(llm_output: str) -> dict | None:
+    """Extrae el JSON de la ÚLTIMA <tool_call>."""
+    print(f"\n--- Intentando parsear salida LLM (Turno 1):\n{llm_output}\n---")
+    
+    # Busca la *última* coincidencia de <tool_call>
+    match = re.search(r".*<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+    
+    if match:
+        tool_call_json = match.group(1).strip()
+        try:
+            parsed = json.loads(tool_call_json)
+            print(f"--- JSON parseado correctamente: {parsed} ---")
+            return parsed
+        except json.JSONDecodeError as e:
+            print(f"Error: JSON malformado en <tool_call>: {e}")
+            return None
+    else:
+        print("Advertencia: No se encontró <tool_call>.")
+        return None
+
+# --- Función para invocar la herramienta ---
+def invoke_tool(parsed_call: dict | None) -> str:
+    """Invoca la herramienta si el parseo fue exitoso."""
+    if parsed_call and parsed_call.get("tool") == "financial_calculator" and "input" in parsed_call:
+        return financial_calculator.invoke(parsed_call["input"])
+    else:
+        return "Error: No se pudo ejecutar la herramienta. La llamada (tool_call) no se generó o no se pudo parsear."
+
+# --- 2. Función Principal (main) ---
+def main():
+    model_id = "SUFE-AIFLM-Lab/Fin-R1"
+    print(f"--- Iniciando experimento con langchain y modelo: {model_id} ---")
+
+    # --- 3. Carga del Modelo y Tokenizer ---
+    print("--- Cargando modelo y tokenizer (sin cuantización)... ---")
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+        trust_remote_code=True
+    )
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        model.config.pad_token_id = model.config.eos_token_id
+    print("--- Modelo y tokenizer cargados ---")
+
+    # --- 4. Creación del Pipeline (Determinista) ---
+    
+    # Pipeline para la llamada a la herramienta (salida corta)
+    tool_pipe = pipeline(
+        "text-generation", 
+        model=model, 
+        tokenizer=tokenizer, 
+        model_kwargs={"use_cache": True},
+        max_new_tokens=150, 
+        do_sample=False, 
+        pad_token_id=model.config.pad_token_id
+    )
+
+    # Pasamos los argumentos de generación (stop_sequences) al wrapper de LangChain
+    tool_llm = HuggingFacePipeline(
+        pipeline=tool_pipe,
+        pipeline_kwargs={"stop_sequences": ["</tool_call>"]} # ¡Esta es la corrección técnica!
+    )
+
+    # Pipeline para la respuesta final (salida más larga)
+    final_pipe = pipeline(
+        "text-generation", 
+        model=model, 
+        tokenizer=tokenizer, 
+        model_kwargs={"use_cache": True},
+        max_new_tokens=512, 
+        do_sample=False, 
+        pad_token_id=model.config.pad_token_id
+    )
+    final_llm = HuggingFacePipeline(pipeline=final_pipe)
+    print("--- Pipelines de Hugging Face creados ---")
+
+    # --- 5. Creación de la Cadena LCEL ---
+    # Prompt MUY explícito para generar SÓLO la llamada JSON
+    tool_call_prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are an assistant that MUST use the financial_calculator tool.
+Tool definition: financial_calculator(P: float, r: float, n: int, t: float).
+You MUST output ONLY the tool call in JSON format wrapped in <tool_call> tags. DO NOT add any other text.
+Example:
+<tool_call>
+{{"tool": "financial_calculator", "input": {{"P": 100, "r": 0.05, "n": 4, "t": 2}}}}
+</tool_call>"""),
+        ("user", "{input}")
+    ])
+
+    # --- LA SOLUCIÓN (APLICADA AQUÍ) ---
+    # Este prompt prohíbe explícitamente el re-cálculo y le dice al
+    # modelo que confíe en el resultado de la herramienta.
+    final_response_prompt = ChatPromptTemplate.from_messages([
+         ("system", """You are a helpful financial assistant. A trusted calculation tool has already run.
+Your ONLY job is to present this final result to the user clearly and professionally.
+DO NOT perform any calculations yourself. DO NOT show the formula.
+Start your response directly by stating the answer."""),
+         ("user", "Original question: {original_input}\nTool's calculation result: {tool_result}\n\nPlease state the final answer."),
+         ("ai", "Based on the tool's calculation, the final answer is ") # Prefijo para guiar al modelo
+    ])
+
+    # Cadena LCEL
+    chain = (
+        RunnablePassthrough.assign(original_input=lambda x: x["input"])
+        | RunnablePassthrough.assign(llm_tool_call_output=tool_call_prompt | tool_llm | StrOutputParser())
+        | RunnablePassthrough.assign(parsed_call=RunnableLambda(lambda x: parse_tool_call(x["llm_tool_call_output"])))
+        | RunnablePassthrough.assign(tool_result=RunnableLambda(lambda x: invoke_tool(x["parsed_call"])))
+        | final_response_prompt
+        | final_llm
+        | StrOutputParser()
+    )
+    print("--- Cadena LCEL creada ---")
+
+    # --- 6. Ejecución del Query ---
+    user_query = "I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?"
+    print(f"\n--- Query de Usuario: {user_query} ---")
+
+    # Invocar la cadena completa
+    final_answer = chain.invoke({"input": user_query})
+
+    # Imprimir la respuesta final
+    print(f"\n--- Respuesta Final del Agente: ---")
+    print(final_answer)
+
+if __name__ == "__main__":
+    main()
