@@ -9,6 +9,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
+# NOTA: Se eliminan las importaciones de StoppingCriteria, ya que usaremos 'stop_sequences'
 
 # --- 1. Definición de la Herramienta ---
 class FinancialCalculatorInput(BaseModel):
@@ -29,38 +30,23 @@ def financial_calculator(P: float, r: float, n: int, t: float) -> str:
 
 # --- Función para parsear la llamada ---
 def parse_tool_call(llm_output: str) -> dict | None:
-    """Extrae el JSON de <tool_call>."""
+    """Extrae el JSON de la ÚLTIMA <tool_call>."""
     print(f"\n--- Intentando parsear salida LLM (Turno 1):\n{llm_output}\n---")
-    # --- CORRECCIÓN DE REGEX ---
-    # Buscamos la llamada a la herramienta que NO esté dentro del prompt de sistema.
-    # Esta regex busca el texto que sigue a la ÚLTIMA aparición de 'Assistant:'
-    match = re.search(r"Assistant:(.*?)<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
     
-    # Si no la encuentra (porque el modelo solo generó el tool_call), probamos la regex simple
-    if not match:
-        match = re.search(r"<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
-
+    # --- CORRECCIÓN DE REGEX ---
+    # Usamos .*(...) para encontrar la *última* coincidencia de <tool_call> en el
+    # texto, evitando que se capture el ejemplo del prompt del sistema.
+    match = re.search(r".*<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
+    
     if match:
-        # El JSON es el último grupo capturado
-        tool_call_json = match.group(match.lastindex).strip()
+        # El JSON es el grupo 1 (la única captura)
+        tool_call_json = match.group(1).strip()
         try:
             parsed = json.loads(tool_call_json)
             print(f"--- JSON parseado correctamente: {parsed} ---")
             return parsed
         except json.JSONDecodeError as e:
-            # El JSON estaba malformado (posiblemente por el ejemplo del prompt)
-            print(f"Error: JSON malformado en <tool_call>. Intentando de nuevo solo con la salida... {e}")
-            # Como plan B, buscamos solo la última llamada
-            match_last = re.search(r".*<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
-            if match_last:
-                tool_call_json = match_last.group(1).strip()
-                try:
-                    parsed = json.loads(tool_call_json)
-                    print(f"--- JSON (Plan B) parseado correctamente: {parsed} ---")
-                    return parsed
-                except json.JSONDecodeError:
-                    print(f"Error: Falló el Plan B. JSON final malformado.")
-                    return None
+            print(f"Error: JSON malformado en <tool_call>: {e}")
             return None
     else:
         print("Advertencia: No se encontró <tool_call>.")
@@ -72,7 +58,8 @@ def invoke_tool(parsed_call: dict | None) -> str:
     if parsed_call and parsed_call.get("tool") == "financial_calculator" and "input" in parsed_call:
         return financial_calculator.invoke(parsed_call["input"])
     else:
-        return "Error: No se pudo ejecutar la herramienta debido a un fallo en la llamada o el parseo."
+        # Este error se enviará de vuelta al LLM en el Turno 2
+        return "Error: No se pudo ejecutar la herramienta. La llamada (tool_call) no se generó o no se pudo parsear. Revisa tu salida."
 
 # --- 2. Función Principal (main) ---
 def main():
@@ -95,31 +82,35 @@ def main():
 
     # --- 4. Creación del Pipeline (Determinista) ---
     
-    # --- SOLUCIÓN: DEFINIR TOKENS DE PARADA ---
-    # Creamos una lista de IDs de token que forzarán la parada.
-    # Incluimos el token de fin de secuencia normal y el token de </tool_call>
-    stop_token_id = tokenizer.encode("</tool_call>", add_special_tokens=False)[-1]
-    eos_token_ids = [tokenizer.eos_token_id, stop_token_id]
-    # ----------------------------------------
-
+    # --- LA SOLUCIÓN (APLICADA AQUÍ) ---
+    # La pipeline 'tool_pipe' ahora incluye 'stop_sequences' como un
+    # argumento de primer nivel. Esto forzará a model.generate() a
+    # detenerse inmediatamente después de la etiqueta </tool_call>.
+    
     # Pipeline para la llamada a la herramienta (salida corta)
     tool_pipe = pipeline(
-        "text-generation", model=model, tokenizer=tokenizer, model_kwargs={"use_cache": True},
+        "text-generation", 
+        model=model, 
+        tokenizer=tokenizer, 
+        model_kwargs={"use_cache": True},
         max_new_tokens=150, 
         do_sample=False, 
         pad_token_id=model.config.pad_token_id,
-        # --- SOLUCIÓN: PASAR LOS TOKENS DE PARADA A LA PIPELINE ---
-        generation_kwargs={"eos_token_id": eos_token_ids}
+        # --- ESTA ES LA CORRECCIÓN SOLICITADA ---
+        stop_sequences=["</tool_call>"] 
     )
     tool_llm = HuggingFacePipeline(pipeline=tool_pipe)
 
     # Pipeline para la respuesta final (salida más larga)
     final_pipe = pipeline(
-        "text-generation", model=model, tokenizer=tokenizer, model_kwargs={"use_cache": True},
+        "text-generation", 
+        model=model, 
+        tokenizer=tokenizer, 
+        model_kwargs={"use_cache": True},
         max_new_tokens=512, 
         do_sample=False, 
         pad_token_id=model.config.pad_token_id
-        # No pasamos el stop_token_id aquí, ya que SÍ queremos que hable
+        # No usamos 'stop_sequences' aquí
     )
     final_llm = HuggingFacePipeline(pipeline=final_pipe)
     print("--- Pipelines de Hugging Face creados ---")
@@ -144,27 +135,21 @@ Example:
          ("ai", "Based on the calculation, the answer to your question is:")
     ])
 
-    # --- SOLUCIÓN: CADENA LCEL MÁS ROBUSTA ---
-    # Esta cadena pasa explícitamente las variables correctas a cada paso.
-    
-    # 1. Cadena para el primer turno (generar y ejecutar herramienta)
-    chain_turn_1 = (
+    # Cadena LCEL
+    chain = (
+        # Guardar la entrada original
         RunnablePassthrough.assign(original_input=lambda x: x["input"])
+        # Generar la llamada
         | RunnablePassthrough.assign(llm_tool_call_output=tool_call_prompt | tool_llm | StrOutputParser())
+        # Parsear la llamada (usando la regex mejorada)
         | RunnablePassthrough.assign(parsed_call=RunnableLambda(lambda x: parse_tool_call(x["llm_tool_call_output"])))
+        # Ejecutar la herramienta
         | RunnablePassthrough.assign(tool_result=RunnableLambda(lambda x: invoke_tool(x["parsed_call"])))
-    )
-
-    # 2. Cadena para el segundo turno (generar respuesta final)
-    # Esta cadena toma el diccionario de salida de la cadena 1
-    chain_turn_2 = (
-        final_response_prompt
+        # Generar la respuesta final
+        | final_response_prompt
         | final_llm
         | StrOutputParser()
     )
-
-    # Cadena LCEL completa
-    chain = chain_turn_1 | chain_turn_2
     print("--- Cadena LCEL creada ---")
 
     # --- 6. Ejecución del Query ---
@@ -174,7 +159,7 @@ Example:
     # Invocar la cadena completa
     final_answer = chain.invoke({"input": user_query})
 
-    # Imprimir la respuesta final (los pasos intermedios se imprimen en las funciones)
+    # Imprimir la respuesta final
     print(f"\n--- Respuesta Final del Agente: ---")
     print(final_answer)
 
