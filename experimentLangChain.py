@@ -1,4 +1,4 @@
-# Contenido completo del script de Python para langchain (Versión Corregida)
+# Contenido completo del script de Python para langchain (Corrección Definitiva)
 import torch
 import json
 import re
@@ -9,7 +9,6 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.tools import tool
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-# NOTA: Se eliminan las importaciones de StoppingCriteria, ya que usaremos 'stop_sequences'
 
 # --- 1. Definición de la Herramienta ---
 class FinancialCalculatorInput(BaseModel):
@@ -33,13 +32,11 @@ def parse_tool_call(llm_output: str) -> dict | None:
     """Extrae el JSON de la ÚLTIMA <tool_call>."""
     print(f"\n--- Intentando parsear salida LLM (Turno 1):\n{llm_output}\n---")
     
-    # --- CORRECCIÓN DE REGEX ---
     # Usamos .*(...) para encontrar la *última* coincidencia de <tool_call> en el
     # texto, evitando que se capture el ejemplo del prompt del sistema.
     match = re.search(r".*<tool_call>(.*?)</tool_call>", llm_output, re.DOTALL | re.IGNORECASE)
     
     if match:
-        # El JSON es el grupo 1 (la única captura)
         tool_call_json = match.group(1).strip()
         try:
             parsed = json.loads(tool_call_json)
@@ -58,8 +55,7 @@ def invoke_tool(parsed_call: dict | None) -> str:
     if parsed_call and parsed_call.get("tool") == "financial_calculator" and "input" in parsed_call:
         return financial_calculator.invoke(parsed_call["input"])
     else:
-        # Este error se enviará de vuelta al LLM en el Turno 2
-        return "Error: No se pudo ejecutar la herramienta. La llamada (tool_call) no se generó o no se pudo parsear. Revisa tu salida."
+        return "Error: No se pudo ejecutar la herramienta. La llamada (tool_call) no se generó o no se pudo parsear."
 
 # --- 2. Función Principal (main) ---
 def main():
@@ -83,11 +79,8 @@ def main():
     # --- 4. Creación del Pipeline (Determinista) ---
     
     # --- LA SOLUCIÓN (APLICADA AQUÍ) ---
-    # La pipeline 'tool_pipe' ahora incluye 'stop_sequences' como un
-    # argumento de primer nivel. Esto forzará a model.generate() a
-    # detenerse inmediatamente después de la etiqueta </tool_call>.
     
-    # Pipeline para la llamada a la herramienta (salida corta)
+    # 1. El pipeline base está "limpio" de argumentos de generación en conflicto
     tool_pipe = pipeline(
         "text-generation", 
         model=model, 
@@ -95,13 +88,16 @@ def main():
         model_kwargs={"use_cache": True},
         max_new_tokens=150, 
         do_sample=False, 
-        pad_token_id=model.config.pad_token_id,
-        # --- ESTA ES LA CORRECCIÓN SOLICITADA ---
-        stop_sequences=["</tool_call>"] 
+        pad_token_id=model.config.pad_token_id
     )
-    tool_llm = HuggingFacePipeline(pipeline=tool_pipe)
 
-    # Pipeline para la respuesta final (salida más larga)
+    # 2. Pasamos los argumentos de generación (stop_sequences) al wrapper de LangChain
+    tool_llm = HuggingFacePipeline(
+        pipeline=tool_pipe,
+        pipeline_kwargs={"stop_sequences": ["</tool_call>"]} # <-- ¡SOLUCIÓN CORRECTA!
+    )
+
+    # Pipeline para la respuesta final (no necesita stop_sequences)
     final_pipe = pipeline(
         "text-generation", 
         model=model, 
@@ -110,7 +106,6 @@ def main():
         max_new_tokens=512, 
         do_sample=False, 
         pad_token_id=model.config.pad_token_id
-        # No usamos 'stop_sequences' aquí
     )
     final_llm = HuggingFacePipeline(pipeline=final_pipe)
     print("--- Pipelines de Hugging Face creados ---")
@@ -141,7 +136,7 @@ Example:
         RunnablePassthrough.assign(original_input=lambda x: x["input"])
         # Generar la llamada
         | RunnablePassthrough.assign(llm_tool_call_output=tool_call_prompt | tool_llm | StrOutputParser())
-        # Parsear la llamada (usando la regex mejorada)
+        # Parsear la llamada (usando la regex robusta)
         | RunnablePassthrough.assign(parsed_call=RunnableLambda(lambda x: parse_tool_call(x["llm_tool_call_output"])))
         # Ejecutar la herramienta
         | RunnablePassthrough.assign(tool_result=RunnableLambda(lambda x: invoke_tool(x["parsed_call"])))
