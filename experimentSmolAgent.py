@@ -76,13 +76,18 @@ smolagents_model = TransformersModel(
     generation_kwargs={
         "do_sample": False,
         "max_new_tokens": 512 
-    }
+    },
+    system_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Movido aquí desde CodeAgent
 ) 
 
 print("--- Modelo cargado ---")
 
 # --- 4. Inicialización del Agente (Corregida) ---
-agent = CodeAgent(tools=[FinancialCalculatorTool()], model=smolagents_model, system_prompt=SMOL_SYSTEM_PROMPT) 
+agent = CodeAgent(
+    tools=[FinancialCalculatorTool()], 
+    model=smolagents_model
+    # system_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Eliminado de aquí
+) 
 print("--- Agente inicializado ---")
 
 # --- 5. Ejecución del Agente ---
