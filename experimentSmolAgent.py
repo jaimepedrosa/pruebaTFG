@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from smolagents import CodeAgent, Tool, TransformersModel
 # Eliminamos la importación de BitsAndBytesConfig
 
-# --- 1. Definición de la Herramienta (Corregida indentación) ---
+# --- 1. Definición de la Herramienta (Sin cambios) ---
 class FinancialCalculatorTool(Tool):
     """Herramienta para calcular el interés compuesto."""
     name = "financial_calculator"
@@ -29,11 +29,11 @@ class FinancialCalculatorTool(Tool):
         print(f"--- [Resultado Herramienta] {result} ---")
         return result
 
-# --- 2. Definición del Modelo y Prompt del Sistema ---
+# --- 2. Definición del Modelo y Prompt del Sistema (Sin cambios) ---
 
 model_name = "SUFE-AIFLM-Lab/Fin-R1"
 
-# --- Prompt del Sistema (Corregido y validado) ---
+# --- Prompt del Sistema (Sin cambios) ---
 SMOL_SYSTEM_PROMPT = """You are a helpful financial assistant.
 Your goal is to answer the user's question by writing and executing Python code.
 You have access to the following tool, which is available as a Python function: financial_calculator.
@@ -62,31 +62,29 @@ result = financial_calculator(P=P, r=r, n=n, t=t)
 print(f"The total amount after 10 years will be: ${result:,.2f}")
 """
 
-# --- 3. Carga del Modelo (Corregida indentación) ---
+# --- 3. Carga del Modelo (Corregida Definitivamente) ---
 print(f"--- Cargando modelo: {model_name} (Precisión Completa, Determinista) ---") 
 smolagents_model = TransformersModel(
     model_id=model_name,
     auto_class=AutoModelForCausalLM, 
     device_map="auto",
     torch_dtype=torch.bfloat16,
-    trust_remote_code=True, # <--- CORRECCIÓN: Movido fuera de model_kwargs
-    model_kwargs={
-        # "trust_remote_code": True # <--- ELIMINADO DE AQUÍ
-    },
-    generation_kwargs={
-        "do_sample": False,
-        "max_new_tokens": 512 
-    },
-    system_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Movido aquí desde CodeAgent
+    trust_remote_code=True,
+    model_kwargs={}, # Dejado vacío, como determinamos
+    system_prompt=SMOL_SYSTEM_PROMPT, # En el nivel superior, como determinamos
+    
+    # --- CORRECCIÓN FINAL: Argumentos de 'generation_kwargs' aplanados ---
+    do_sample=False,
+    max_new_tokens=512
+    # El argumento 'generation_kwargs={...}' ha sido eliminado
 ) 
 
 print("--- Modelo cargado ---")
 
-# --- 4. Inicialización del Agente (Corregida) ---
+# --- 4. Inicialización del Agente (Correcto) ---
 agent = CodeAgent(
     tools=[FinancialCalculatorTool()], 
     model=smolagents_model
-    # system_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Eliminado de aquí
 ) 
 print("--- Agente inicializado ---")
 
