@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from smolagents import CodeAgent, Tool, TransformersModel
 # Eliminamos la importación de BitsAndBytesConfig
 
-# --- 1. Definición de la Herramienta (Sin cambios) ---
+# --- 1. Definición de la Herramienta (Corregida indentación) ---
 class FinancialCalculatorTool(Tool):
     """Herramienta para calcular el interés compuesto."""
     name = "financial_calculator"
@@ -33,10 +33,7 @@ class FinancialCalculatorTool(Tool):
 
 model_name = "SUFE-AIFLM-Lab/Fin-R1"
 
-# --- SOLUCIÓN: Prompt del Sistema Corregido ---
-# El bloque de código de ejemplo (```python ... ```) ahora está
-# correctamente cerrado con ``` y el print() está dentro de él.
-# El string SMOL_SYSTEM_PROMPT se cierra al final con """.
+# --- Prompt del Sistema (Corregido y validado) ---
 SMOL_SYSTEM_PROMPT = """You are a helpful financial assistant.
 Your goal is to answer the user's question by writing and executing Python code.
 You have access to the following tool, which is available as a Python function: financial_calculator.
@@ -63,48 +60,38 @@ n = 12
 t = 10.0
 result = financial_calculator(P=P, r=r, n=n, t=t)
 print(f"The total amount after 10 years will be: ${result:,.2f}")
-```
 """
 
-# --- 3. Carga del Modelo (Corregida) ---
-print(f"--- Cargando modelo: {model_name} (Precisión Completa, Determinista) ---")
+# --- 3. Carga del Modelo (Corregida indentación) ---
+print(f"--- Cargando modelo: {model_name} (Precisión Completa, Determinista) ---") 
 smolagents_model = TransformersModel(
     model_id=model_name,
-    # Forzamos la clase AutoModelForCausalLM para evitar el error de 'torch_dtype'
     auto_class=AutoModelForCausalLM, 
     device_map="auto",
+    torch_dtype=torch.bfloat16,
     model_kwargs={
-        # SOLUCIÓN 1: Sin cuantización, usamos bfloat16
-        "torch_dtype": torch.bfloat16,
         "trust_remote_code": True
-        # Eliminada "quantization_config"
     },
     generation_kwargs={
-        # SOLUCIÓN 2: Generación determinista
         "do_sample": False,
-        "max_new_tokens": 512 # Espacio para el "Thought" y el código
+        "max_new_tokens": 512 
     }
-)
+) 
+
 print("--- Modelo cargado ---")
 
 # --- 4. Inicialización del Agente (Corregida) ---
-agent = CodeAgent(
-    tools=[FinancialCalculatorTool()],
-    model=smolagents_model,
-    system_prompt=SMOL_SYSTEM_PROMPT # SOLUCIÓN 3: Inyectamos el prompt
-)
+agent = CodeAgent(tools=[FinancialCalculatorTool()], model=smolagents_model, system_prompt=SMOL_SYSTEM_PROMPT) 
 print("--- Agente inicializado ---")
 
 # --- 5. Ejecución del Agente ---
-user_query = """I have $10,000 to invest. The bank offers an interest rate of 6% per year,
-compounded monthly (12 times per year). How much money will I have after 10 years?"""
+user_query = """I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?"""
 
-print(f"\n--- Ejecutando Query: {user_query} ---")
-# Esta llamada ya no debería colgarse
+print(f"\n--- Ejecutando Query: {user_query} ---") 
 result = agent.run(user_query)
 
-print("\n--- Respuesta Final del Agente ---")
+print("\n--- Respuesta Final del Agente ---") 
 print(result)
 
-if __name__ == "__main__":
-    pass # El script ya se ejecuta de forma lineal
+if __name__ == "__main__": 
+    pass 
