@@ -80,7 +80,7 @@ smolagents_model = TransformersModel(
     
     # Argumentos de generación aplanados
     do_sample=False,
-    max_new_tokens=512
+    max_new_tokens=2048 # <--- ¡LA SOLUCIÓN! Aumentado para dar espacio al 'Thought' y al 'code'
 ) 
 
 print("--- Modelo cargado ---")
