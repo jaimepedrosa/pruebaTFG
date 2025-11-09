@@ -69,8 +69,9 @@ smolagents_model = TransformersModel(
     auto_class=AutoModelForCausalLM, 
     device_map="auto",
     torch_dtype=torch.bfloat16,
+    trust_remote_code=True, # <--- CORRECCIÓN: Movido fuera de model_kwargs
     model_kwargs={
-        "trust_remote_code": True
+        # "trust_remote_code": True # <--- ELIMINADO DE AQUÍ
     },
     generation_kwargs={
         "do_sample": False,
@@ -94,4 +95,4 @@ print("\n--- Respuesta Final del Agente ---")
 print(result)
 
 if __name__ == "__main__": 
-    pass 
+    pass # El script ya se ejecuta de forma lineal
