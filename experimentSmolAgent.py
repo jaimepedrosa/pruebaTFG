@@ -84,8 +84,8 @@ print("--- Modelo cargado ---")
 # --- 4. Inicialización del Agente (Correcto) ---
 agent = CodeAgent(
     tools=[FinancialCalculatorTool()], 
-    model=smolagents_model,
-    code_generation_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Movido aquí
+    model=smolagents_model
+    # code_generation_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Eliminado
 ) 
 print("--- Agente inicializado ---")
 
