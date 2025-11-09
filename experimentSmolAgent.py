@@ -66,14 +66,14 @@ print(f"The total amount after 10 years will be: ${result:,.2f}")
 print(f"--- Cargando modelo: {model_name} (Precisión Completa, Determinista) ---") 
 smolagents_model = TransformersModel(
     model_id=model_name,
-    auto_class=AutoModelForCausalLM, 
+    # auto_class=AutoModelForCausalLM, # <--- CORRECCIÓN: Eliminado
     device_map="auto",
     torch_dtype=torch.bfloat16,
     trust_remote_code=True,
     model_kwargs={}, # Dejado vacío, como determinamos
-    system_prompt=SMOL_SYSTEM_PROMPT, # En el nivel superior, como determinamos
+    # system_prompt=SMOL_SYSTEM_PROMPT, # <--- CORRECCIÓN: Eliminado
     
-    # --- CORRECCIÓN FINAL: Argumentos de 'generation_kwargs' aplanados ---
+    # --- Argumentos de 'generation_kwargs' aplanados (Correcto) ---
     do_sample=False,
     max_new_tokens=512
     # El argumento 'generation_kwargs={...}' ha sido eliminado
@@ -84,7 +84,8 @@ print("--- Modelo cargado ---")
 # --- 4. Inicialización del Agente (Correcto) ---
 agent = CodeAgent(
     tools=[FinancialCalculatorTool()], 
-    model=smolagents_model
+    model=smolagents_model,
+    code_generation_prompt=SMOL_SYSTEM_PROMPT # <--- CORRECCIÓN: Movido aquí
 ) 
 print("--- Agente inicializado ---")
 
