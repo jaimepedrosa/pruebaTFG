@@ -54,17 +54,17 @@ To answer the question, you MUST:
 Example of a perfect response:
 
 Thought: The user needs to calculate compound interest.
-P is $10,000. r is 6% (0.06). n is 12 (monthly). t is 10 years.
-I will write a Python block to call `financial_calculator(P=10000, r=0.06, n=12, t=10)` and print the output.
+P is $12,000. r is 5% (0.05). n is 24 (monthly). t is 15 years.
+I will write a Python block to call `financial_calculator(P=12000, r=0.05, n=24, t=15)` and print the output.
 ```python
 from tools import financial_calculator
 
-P = 10000.0
-r = 0.06
-n = 12
-t = 10.0
+P = 12000.0
+r = 0.05
+n = 24
+t = 15.0
 result = financial_calculator(P=P, r=r, n=n, t=t)
-print(f"The total amount after 10 years will be: ${result:,.2f}")
+print(f"The total amount after 15 years will be: ${result:,.2f}")
 """
 
 # --- 3. Carga del Modelo (Limpio y Corregido) ---
@@ -94,7 +94,7 @@ agent = CodeAgent(
 print("--- Agente inicializado ---")
 
 # --- 5. Ejecución del Agente ---
-user_query = """I have $10,000 to invest. The bank offers an interest rate of 6% per year, compounded monthly (12 times per year). How much money will I have after 10 years?"""
+user_query = """I have $18,000 to invest. The bank offers an interest rate of 5% per year, compounded monthly (12 times per year). How much money will I have after 25 years?"""
 
 print(f"\n--- Ejecutando Query: {user_query} ---") 
 result = agent.run(user_query)
