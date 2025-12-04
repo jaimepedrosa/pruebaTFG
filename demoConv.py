@@ -52,7 +52,7 @@ stopping_criteria_list = StoppingCriteriaList([StopOnTokens(stop_token_ids)])
 
 model.eval() # Poner el modelo en modo de evaluación
 
-print("\n--- ✅ Modelo listo para chatear (Modo Determinista) ---")
+print("\n--- Modelo listo para chatear (Modo Determinista) ---")
 print('Escribe tu prompt. Escribe "salir" para terminar.\n')
 
 # --- PASO 2: BUCLE DE CHAT ---
@@ -84,7 +84,7 @@ try:
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=512,                  # Límite de la respuesta
+                max_new_tokens=2048,                  # Límite de la respuesta
                 do_sample=False,                     # --- GENERACIÓN DETERMINISTA ---
                 pad_token_id=tokenizer.eos_token_id,
                 eos_token_id=tokenizer.eos_token_id, # Parar al final de la sentencia
