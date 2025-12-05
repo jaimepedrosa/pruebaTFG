@@ -1,5 +1,7 @@
 import torch
 import json
+import datetime
+import os
 from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
@@ -7,64 +9,74 @@ from tqdm import tqdm
 # --- 1. Constantes y Configuración ---
 MODEL_ID = "SUFE-AIFLM-Lab/Fin-R1"
 
-# NUEVA FUENTE DE DATOS (Hugging Face Hub)
+# NUEVA FUENTE DE DATOS: FinQA desde Hugging Face
 DATASET_ID = "TheFinAI/FINQA_test_test"
-DATASET_SPLIT = "validation" # Basado en la vista 'val'
+DATASET_SPLIT = "val"  # El viewer de HF muestra 'val'
 
-OUTPUT_FILE = "baseline_outputs_finqa_formatted.jsonl"
-
-# Parámetros de Inferencia (Mantenemos la configuración del paper/experimento)
+# Parámetros de Inferencia (Igual que en el paper)
 INFERENCE_TEMP = 0.6
 DO_SAMPLE = True
 MAX_NEW_TOKENS = 1024
 
-# --- 2. System Prompt con Reglas de Formateo Estrictas ---
-SYSTEM_PROMPT = """You are a helpful financial expert AI. 
-You must solve the user's financial question using step-by-step chain-of-thought reasoning based strictly on the provided context.
+SYSTEM_PROMPT = "You are a helpful financial expert AI."
 
-CRITICAL OUTPUT FORMATTING RULES:
-At the end of your response, you MUST provide the final answer wrapped in a LaTeX box: \\boxed{...}.
-Analyze the type of question to determine the content of the box:
-
-1. TYPE A: Numerical Questions (e.g., starts with 'What', 'Calculate', 'How much', 'What percentage').
-   - The box must contain ONLY the numeric value (no words, no units inside).
-   - Example: ... therefore the revenue grew by 500 million. \\boxed{500}
-   - Example: ... the ratio is calculated as 0.465. \\boxed{0.465}
-
-2. TYPE B: Boolean Questions (e.g., starts with 'Did', 'Was', 'Is').
-   - The box must contain ONLY 'yes' or 'no' (lowercase).
-   - Example: ... this indicates the company performed better. \\boxed{yes}
-
-Do not use external tools. Use your internal reasoning capabilities."""
+def get_writable_output_file():
+    """
+    Intenta encontrar una ruta donde tengamos permisos de escritura.
+    Prueba primero localmente, luego en /tmp/.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"baseline_outputs_finqa_{timestamp}.jsonl"
+    
+    # Intento 1: Carpeta actual
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write("") # Prueba de escritura
+        print(f"✅ Permisos correctos. Guardando en: {filename}")
+        return filename
+    except PermissionError:
+        print(f"⚠️ Sin permisos en la carpeta actual. Cambiando a /tmp/...")
+    
+    # Intento 2: Carpeta temporal (garantizado en Linux)
+    tmp_filename = os.path.join("/tmp", filename)
+    try:
+        with open(tmp_filename, 'w', encoding='utf-8') as f:
+            f.write("")
+        print(f"✅ Redirigido exitosamente a: {tmp_filename}")
+        return tmp_filename
+    except Exception as e:
+        raise RuntimeError(f"❌ No se puede escribir ni en local ni en /tmp. Error: {e}")
 
 def format_finqa_prompt(row):
     """
-    Construye el prompt combinando el contexto (pre_text + post_text) y la pregunta.
-    FinQA tiene listas de strings en pre_text/post_text.
+    Formatea la entrada específica de FinQA.
     """
-    # Extraer y limpiar contexto
-    pre_text = " ".join(row.get('pre_text', []))
-    post_text = " ".join(row.get('post_text', []))
-    
-    # Construir el contexto completo
-    full_context = f"{pre_text}\n{post_text}".strip()
-    question = row.get('question', '')
+    def clean_text(field):
+        if isinstance(field, list):
+            return " ".join([str(x) for x in field])
+        return str(field) if field else ""
 
-    user_content = f"Context:\n{full_context}\n\nQuestion:\n{question}\n\nPlease analyze the context and provide the answer."
-    return user_content
+    pre_text = clean_text(row.get('pre_text', []))
+    post_text = clean_text(row.get('post_text', []))
+    question = row.get('question', '')
+    
+    full_context = f"{pre_text}\n{post_text}".strip()
+    
+    return f"Context:\n{full_context}\n\nQuestion:\n{question}\n\nPlease analyze the context and answer the question."
 
 def main():
-    print(f"--- Iniciando Inferencia BASELINE (FinQA) ---")
-    print(f"Modelo: {MODEL_ID}")
-    print(f"Dataset: {DATASET_ID} (Split: {DATASET_SPLIT})")
+    print(f"--- Iniciando Inferencia Baseline (FinQA) ---")
     
-    # --- 3. Cargar Tokenizer y Modelo ---
-    print("Cargando tokenizer...")
+    # --- 1. Determinar Archivo de Salida Seguro ---
+    output_file = get_writable_output_file()
+    
+    # --- 2. Cargar Tokenizer y Modelo ---
+    print("⚙️ Cargando tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    print("Cargando modelo (torch.bfloat16)...")
+    print("⚙️ Cargando modelo (torch.bfloat16)...")
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
         torch_dtype=torch.bfloat16,
@@ -73,82 +85,68 @@ def main():
     )
     model.eval()
 
-    # --- 4. Cargar Dataset desde Hugging Face ---
-    print(f"Cargando dataset {DATASET_ID}...")
+    # --- 3. Cargar Dataset ---
+    print(f"📥 Cargando dataset {DATASET_ID}...")
     try:
         dataset = load_dataset(DATASET_ID, split=DATASET_SPLIT)
-        print(f"Dataset cargado. Total de muestras: {len(dataset)}")
+        print(f"✅ Dataset cargado. Muestras totales: {len(dataset)}")
     except Exception as e:
-        print(f"Error fatal cargando el dataset: {e}")
+        print(f"❌ Error cargando dataset: {e}")
         return
 
-    # Limpiar archivo de salida
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        pass 
-
+    # --- 4. Inferencia ---
+    print("🚀 Ejecutando inferencia...")
     total_processed = 0
-
-    # --- 5. Bucle de Inferencia ---
-    # Iteramos directamente sobre el dataset cargado
-    for idx, row in tqdm(enumerate(dataset), total=len(dataset), desc="Inferencia Baseline"):
+    
+    with open(output_file, 'a', encoding='utf-8') as f_out:
         
-        # Preparar el contenido del usuario
-        user_content = format_finqa_prompt(row)
-        
-        # Ground Truth (FinQA a veces tiene la respuesta en 'answer' como diccionario o string)
-        ground_truth = row.get('answer', 'N/A')
-        if isinstance(ground_truth, dict):
-            # En FinQA original, 'answer' suele ser un dict con pasos de programa y resultado
-            # Intentamos extraer el resultado final si existe esa estructura
-            ground_truth = str(ground_truth)
-
-        # Construir mensajes para el Chat Template
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_content}
-        ]
-        
-        try:
-            # Tokenización
-            prompt_templated = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
-            )
-            inputs = tokenizer(prompt_templated, return_tensors="pt").to(model.device)
-
-            # Generación (Sin Herramientas - Pure CoT)
-            outputs = model.generate(
-                **inputs,
-                do_sample=DO_SAMPLE,
-                temperature=INFERENCE_TEMP,
-                max_new_tokens=MAX_NEW_TOKENS,
-                pad_token_id=tokenizer.pad_token_id
-            )
+        for idx, row in tqdm(enumerate(dataset), total=len(dataset), desc="Procesando"):
             
-            # Decodificación
-            response_ids = outputs[0][inputs['input_ids'].shape[1]:]
-            response_text = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+            user_content = format_finqa_prompt(row)
+            raw_answer = row.get('answer', 'N/A')
+            ground_truth = str(raw_answer)
 
-            # Estructura de salida compatible con el Juez
-            result = {
-                "id": row.get('id', f"finqa_val_{idx}"),
-                "dataset_source": DATASET_ID,
-                "pregunta": row.get('question', ''),
-                "ground_truth": ground_truth,
-                "modelo_baseline": response_text
-            }
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_content}
+            ]
             
-            # Guardar en tiempo real (append)
-            with open(OUTPUT_FILE, 'a', encoding='utf-8') as f_out:
+            try:
+                prompt_templated = tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+                inputs = tokenizer(prompt_templated, return_tensors="pt").to(model.device)
+
+                outputs = model.generate(
+                    **inputs,
+                    do_sample=DO_SAMPLE,
+                    temperature=INFERENCE_TEMP,
+                    max_new_tokens=MAX_NEW_TOKENS,
+                    pad_token_id=tokenizer.pad_token_id
+                )
+                
+                response_ids = outputs[0][inputs['input_ids'].shape[1]:]
+                response_text = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+
+                result = {
+                    "id": row.get('id', f"finqa_{idx}"),
+                    "dataset": DATASET_ID,
+                    "pregunta": row.get('question', ''),
+                    "ground_truth": ground_truth,
+                    "modelo_baseline": response_text
+                }
+                
                 f_out.write(json.dumps(result, ensure_ascii=False) + '\n')
-            
-            total_processed += 1
+                f_out.flush()
+                total_processed += 1
 
-        except Exception as e:
-            print(f"Error procesando muestra {idx}: {e}")
-            continue
+            except Exception as e:
+                print(f"⚠️ Error en muestra {idx}: {e}")
+                continue
 
-    print(f"\nInferencia Baseline Completada. Total procesado: {total_processed}")
-    print(f"Resultados guardados en {OUTPUT_FILE}")
+    print(f"\n✅ Completado. Procesados: {total_processed}")
+    print(f"📄 RESULTADOS GUARDADOS EN: {output_file}")
+    print("Copia esta ruta para usarla en el script del juez.")
 
 if __name__ == "__main__":
     main()

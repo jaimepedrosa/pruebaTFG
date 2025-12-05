@@ -1,7 +1,8 @@
 import torch
 import json
 import re
-import pandas as pd
+import os
+import datetime
 from typing import List
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -13,15 +14,40 @@ from datasets import load_dataset
 # --- 1. Configuración ---
 MODEL_ID = "SUFE-AIFLM-Lab/Fin-R1"
 
-# NUEVA FUENTE DE DATOS (Hugging Face Hub)
+# Fuente de datos (Hugging Face Hub)
 DATASET_ID = "TheFinAI/FINQA_test_test"
-DATASET_SPLIT = "validation" # Basado en la vista 'val' del viewer
-
-OUTPUT_FILE = "agent_outputs_finqa_formatted.jsonl"
+DATASET_SPLIT = "val" 
 
 # Parámetros de Inferencia
 INFERENCE_TEMP = 0.6
 MAX_NEW_TOKENS = 512
+
+def get_writable_output_file():
+    """
+    Gestiona permisos de escritura de forma robusta.
+    Prueba local -> Falla -> Prueba /tmp/
+    """
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"agent_outputs_finqa_{timestamp}.jsonl"
+    
+    # Intento 1: Carpeta local
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write("") # Test de escritura
+        print(f"✅ Permisos correctos. Guardando en: {filename}")
+        return filename
+    except PermissionError:
+        print(f"⚠️ Sin permisos locales. Cambiando a /tmp/...")
+        
+    # Intento 2: Carpeta temporal
+    tmp_filename = os.path.join("/tmp", filename)
+    try:
+        with open(tmp_filename, 'w', encoding='utf-8') as f:
+            f.write("")
+        print(f"✅ Redirigido exitosamente a: {tmp_filename}")
+        return tmp_filename
+    except Exception as e:
+        raise RuntimeError(f"❌ Error crítico de escritura: {e}")
 
 # --- 2. Definición de Esquemas de Entrada (Pydantic) ---
 
@@ -144,8 +170,11 @@ def parse_and_execute(llm_output: str) -> str:
 def main():
     print(f"--- Iniciando Inferencia AGENTE FINANCIERO (Format Mode: Boxed) ---")
     
-    # 1. Cargar Modelo
-    print("Cargando Fin-R1 (bfloat16)...")
+    # 1. Determinar Salida Segura
+    output_file = get_writable_output_file()
+    
+    # 2. Cargar Modelo
+    print("⚙️ Cargando Fin-R1 (bfloat16)...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
     
@@ -153,7 +182,7 @@ def main():
         MODEL_ID, torch_dtype=torch.bfloat16, device_map="auto", trust_remote_code=True
     )
 
-    # 2. Pipelines
+    # 3. Pipelines
     thought_pipe = pipeline(
         "text-generation", model=model, tokenizer=tokenizer,
         max_new_tokens=256, do_sample=True, temperature=INFERENCE_TEMP,
@@ -168,7 +197,7 @@ def main():
     )
     llm_responder = HuggingFacePipeline(pipeline=response_pipe)
 
-    # 3. System Prompt "Math-Reasoning + Strict Formatting"
+    # 4. System Prompt "Math-Reasoning + Strict Formatting"
     agent_system_prompt = """You are a financial expert AI specializing in numerical reasoning. 
     You have access to a suite of precise calculation tools. Use them to ensure accuracy.
     
@@ -198,91 +227,83 @@ def main():
     4. Provide the final answer ending with \\boxed{...}.
     """
 
-    # 4. Datos (Carga desde Hugging Face Hub)
-    print(f"Cargando Dataset desde Hugging Face: {DATASET_ID} (Split: {DATASET_SPLIT})...")
+    # 5. Datos (Carga desde Hugging Face Hub)
+    print(f"📥 Cargando Dataset desde Hugging Face: {DATASET_ID} (Split: {DATASET_SPLIT})...")
     try:
         # Carga del dataset usando la librería datasets
         dataset = load_dataset(DATASET_ID, split=DATASET_SPLIT)
-        print(f"Dataset cargado. Total de muestras: {len(dataset)}")
+        print(f"✅ Dataset cargado. Total de muestras: {len(dataset)}")
     except Exception as e:
-        print(f"Error cargando el dataset desde Hugging Face: {e}")
+        print(f"❌ Error cargando el dataset desde Hugging Face: {e}")
         return
 
-    # Limpiar archivo de salida
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f: pass
-    
     total_processed = 0
 
-    # 5. Bucle de Inferencia
-    # Iteramos directamente sobre el objeto dataset de Hugging Face
-    for idx, row in tqdm(enumerate(dataset), total=len(dataset), desc="Agent Reasoning"):
+    # 6. Bucle de Inferencia
+    with open(output_file, 'a', encoding='utf-8') as f_out:
         
-        # Mapeo de columnas de FinQA. 
-        # FinQA suele tener 'pre_text', 'post_text', 'table', 'question'.
-        # Combinamos el contexto relevante para el agente.
-        question = row.get('question', '')
-        
-        # Construimos el contexto (texto + tablas si las hay en formato texto)
-        context_text = row.get('pre_text', [])
-        if isinstance(context_text, list):
-            context_text = " ".join(context_text)
-        
-        # Opcional: Si el dataset trae tablas, se podrían formatear aquí.
-        # Por simplicidad en este paso, pasamos el pre_text y la pregunta.
-        
-        user_input = f"Context:\n{context_text}\n\nQuestion:\n{question}\n\nAnalyze the data, calculate if necessary, and provide the final answer in a \\boxed{{}}."
+        for idx, row in tqdm(enumerate(dataset), total=len(dataset), desc="Agent Reasoning"):
+            
+            question = row.get('question', '')
+            
+            # Construimos el contexto
+            context_text = row.get('pre_text', [])
+            if isinstance(context_text, list):
+                context_text = " ".join(context_text)
+            
+            user_input = f"Context:\n{context_text}\n\nQuestion:\n{question}\n\nAnalyze the data, calculate if necessary, and provide the final answer in a \\boxed{{}}."
 
-        messages = [
-            {"role": "system", "content": agent_system_prompt},
-            {"role": "user", "content": user_input}
-        ]
-        
-        try:
-            prompt_1 = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            messages = [
+                {"role": "system", "content": agent_system_prompt},
+                {"role": "user", "content": user_input}
+            ]
             
-            # --- Paso 1: Pensar / Llamar Herramienta ---
-            thought_output = llm_thinker.invoke(prompt_1)
-            
-            # --- Paso 2: Ejecutar Herramienta (Si aplica) ---
-            tool_feedback = parse_and_execute(thought_output)
-            
-            final_response = ""
-            if tool_feedback:
-                # Inyectar resultado de la herramienta
-                prompt_2 = prompt_1 + thought_output + tool_feedback
-                # Invocamos de nuevo para obtener la conclusión con el formato boxed
-                final_response = llm_responder.invoke(prompt_2)
-            else:
-                final_response = thought_output.replace("<tool_call>", "").replace("</tool_call>", "")
-
-            # Construimos el resultado. Usamos el 'id' del dataset si existe, o generamos uno.
-            sample_id = row.get('id', f"finqa_val_{idx}")
-            ground_truth = row.get('answer', 'N/A')
-            # FinQA a veces tiene la respuesta en 'answer' como string o dict. Convertimos a string seguro.
-            if isinstance(ground_truth, dict):
-                ground_truth = str(ground_truth)
-
-            res = {
-                "id": sample_id,
-                "dataset_source": DATASET_ID,
-                "pregunta": question,
-                "ground_truth": ground_truth,
-                "modelo_baseline": final_response, # Clave compatible con el Juez
-                "tool_used": bool(tool_feedback)
-            }
-            
-            # Escribir en modo append (línea a línea)
-            with open(OUTPUT_FILE, 'a', encoding='utf-8') as f_out:
-                f_out.write(json.dumps(res, ensure_ascii=False) + '\n')
+            try:
+                prompt_1 = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
                 
-            total_processed += 1
-            
-        except Exception as e:
-            print(f"Error procesando muestra {idx}: {e}")
-            continue
+                # --- Paso 1: Pensar / Llamar Herramienta ---
+                thought_output = llm_thinker.invoke(prompt_1)
+                
+                # --- Paso 2: Ejecutar Herramienta (Si aplica) ---
+                tool_feedback = parse_and_execute(thought_output)
+                
+                final_response = ""
+                if tool_feedback:
+                    # Inyectar resultado
+                    prompt_2 = prompt_1 + thought_output + tool_feedback
+                    # Invocamos de nuevo
+                    final_response = llm_responder.invoke(prompt_2)
+                else:
+                    final_response = thought_output.replace("<tool_call>", "").replace("</tool_call>", "")
 
-    print(f"\nInferencia completada. Total procesado: {total_processed}")
-    print(f"Resultados guardados en: {OUTPUT_FILE}")
+                # Construimos el resultado
+                sample_id = row.get('id', f"finqa_val_{idx}")
+                ground_truth = row.get('answer', 'N/A')
+                if isinstance(ground_truth, dict):
+                    ground_truth = str(ground_truth)
+
+                res = {
+                    "id": sample_id,
+                    "dataset_source": DATASET_ID,
+                    "pregunta": question,
+                    "ground_truth": ground_truth,
+                    "modelo_baseline": final_response, # Clave compatible con el Juez
+                    "tool_used": bool(tool_feedback)
+                }
+                
+                # Escribir en modo append (línea a línea)
+                f_out.write(json.dumps(res, ensure_ascii=False) + '\n')
+                f_out.flush() # Guardar progreso
+                
+                total_processed += 1
+                
+            except Exception as e:
+                print(f"⚠️ Error procesando muestra {idx}: {e}")
+                continue
+
+    print(f"\n✅ Inferencia completada. Total procesado: {total_processed}")
+    print(f"📄 Resultados guardados en: {output_file}")
+    print("Recuerda usar el script de recuperación si se guardó en /tmp")
 
 if __name__ == "__main__":
     main()
