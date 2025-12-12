@@ -23,31 +23,11 @@ INFERENCE_TEMP = 0.6
 MAX_NEW_TOKENS = 512
 
 def get_writable_output_file():
-    """
-    Gestiona permisos de escritura de forma robusta.
-    Prueba local -> Falla -> Prueba /tmp/
-    """
+    """Genera una ruta segura en el directorio HOME del usuario."""
+    home_dir = os.path.expanduser("~")
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"agent_outputs_finqa_{timestamp}.jsonl"
-    
-    # Intento 1: Carpeta local
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write("") # Test de escritura
-        print(f"✅ Permisos correctos. Guardando en: {filename}")
-        return filename
-    except PermissionError:
-        print(f"⚠️ Sin permisos locales. Cambiando a /tmp/...")
-        
-    # Intento 2: Carpeta temporal
-    tmp_filename = os.path.join("/tmp", filename)
-    try:
-        with open(tmp_filename, 'w', encoding='utf-8') as f:
-            f.write("")
-        print(f"✅ Redirigido exitosamente a: {tmp_filename}")
-        return tmp_filename
-    except Exception as e:
-        raise RuntimeError(f"❌ Error crítico de escritura: {e}")
+    filename = os.path.join(home_dir, f"agent_outputs_finqa_{timestamp}.jsonl")
+    return filename
 
 # --- 2. Definición de Esquemas de Entrada (Pydantic) ---
 
@@ -159,7 +139,7 @@ def parse_and_execute(llm_output: str) -> str:
             else:
                 res = f"Error: Tool '{tool_name}' not found in registry."
             
-            return f"\nTOOL OBSERVATION: {res}\nBased on this calculation, determine the final answer and format it with \\boxed{{}}."
+            return f"\nTOOL OBSERVATION: {res}\nBased on this, the final answer in \\boxed{{}} is:"
         except json.JSONDecodeError:
             return "\nTOOL ERROR: JSON parsing failed. Ensure valid JSON format inside tags.\n"
         except Exception as e:
@@ -168,10 +148,11 @@ def parse_and_execute(llm_output: str) -> str:
     return "" # No hubo llamada a herramienta
 
 def main():
-    print(f"--- Iniciando Inferencia AGENTE FINANCIERO (Format Mode: Boxed) ---")
+    print(f"--- Iniciando Inferencia AGENTE FINANCIERO (FinQA) ---")
     
-    # 1. Determinar Salida Segura
+    # 1. Determinar Salida
     output_file = get_writable_output_file()
+    print(f"📁 Archivo de salida: {output_file}")
     
     # 2. Cargar Modelo
     print("⚙️ Cargando Fin-R1 (bfloat16)...")
@@ -230,28 +211,29 @@ def main():
     # 5. Datos (Carga desde Hugging Face Hub)
     print(f"📥 Cargando Dataset desde Hugging Face: {DATASET_ID} (Split: {DATASET_SPLIT})...")
     try:
-        # Carga del dataset usando la librería datasets
         dataset = load_dataset(DATASET_ID, split=DATASET_SPLIT)
         print(f"✅ Dataset cargado. Total de muestras: {len(dataset)}")
     except Exception as e:
         print(f"❌ Error cargando el dataset desde Hugging Face: {e}")
         return
 
-    total_processed = 0
-
     # 6. Bucle de Inferencia
+    total_processed = 0
+    
     with open(output_file, 'a', encoding='utf-8') as f_out:
         
         for idx, row in tqdm(enumerate(dataset), total=len(dataset), desc="Agent Reasoning"):
             
-            question = row.get('question', '')
+            # --- CORRECCIÓN CRÍTICA: Usar la columna 'query' ---
+            # La columna 'query' contiene Contexto + Pregunta fusionados
+            raw_query = row.get('query', '')
             
-            # Construimos el contexto
-            context_text = row.get('pre_text', [])
-            if isinstance(context_text, list):
-                context_text = " ".join(context_text)
+            # Si está vacío, saltamos
+            if not raw_query:
+                continue
             
-            user_input = f"Context:\n{context_text}\n\nQuestion:\n{question}\n\nAnalyze the data, calculate if necessary, and provide the final answer in a \\boxed{{}}."
+            # Añadimos la instrucción final al prompt del usuario
+            user_input = f"{raw_query}\n\nAnalyze the data, calculate using tools if necessary, and provide the final answer in a \\boxed{{}}."
 
             messages = [
                 {"role": "system", "content": agent_system_prompt},
@@ -269,23 +251,21 @@ def main():
                 
                 final_response = ""
                 if tool_feedback:
-                    # Inyectar resultado
+                    # Inyectar resultado de la herramienta
                     prompt_2 = prompt_1 + thought_output + tool_feedback
-                    # Invocamos de nuevo
+                    # Invocamos de nuevo para obtener la conclusión con el formato boxed
                     final_response = llm_responder.invoke(prompt_2)
                 else:
                     final_response = thought_output.replace("<tool_call>", "").replace("</tool_call>", "")
 
                 # Construimos el resultado
                 sample_id = row.get('id', f"finqa_val_{idx}")
-                ground_truth = row.get('answer', 'N/A')
-                if isinstance(ground_truth, dict):
-                    ground_truth = str(ground_truth)
+                ground_truth = str(row.get('answer', 'N/A'))
 
                 res = {
                     "id": sample_id,
                     "dataset_source": DATASET_ID,
-                    "pregunta": question,
+                    "pregunta": raw_query, # Guardamos lo original
                     "ground_truth": ground_truth,
                     "modelo_baseline": final_response, # Clave compatible con el Juez
                     "tool_used": bool(tool_feedback)
@@ -293,7 +273,7 @@ def main():
                 
                 # Escribir en modo append (línea a línea)
                 f_out.write(json.dumps(res, ensure_ascii=False) + '\n')
-                f_out.flush() # Guardar progreso
+                f_out.flush() 
                 
                 total_processed += 1
                 
@@ -303,7 +283,7 @@ def main():
 
     print(f"\n✅ Inferencia completada. Total procesado: {total_processed}")
     print(f"📄 Resultados guardados en: {output_file}")
-    print("Recuerda usar el script de recuperación si se guardó en /tmp")
+    print(f"   (Usa 'mv {output_file} work/' si quieres moverlo a tu carpeta de trabajo)")
 
 if __name__ == "__main__":
     main()
