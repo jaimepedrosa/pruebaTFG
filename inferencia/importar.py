@@ -3,7 +3,7 @@ import os
 import glob
 
 # 1. Buscar el último archivo en /tmp
-list_of_files = glob.glob('/tmp//tmp/full_run_finqa_20251211_221409.jsonl')
+list_of_files = glob.glob('/tmp/batch_run_finqa_20251213_171619.jsonl')
 if not list_of_files:
     print("❌ No se encontraron archivos en /tmp. Quizás se borraron.")
     exit()
